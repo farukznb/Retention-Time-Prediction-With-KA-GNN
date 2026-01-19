@@ -1,0 +1,11 @@
+torch
+torch-geometric
+rdkit
+scikit-learn
+gpytorch
+matplotlib
+seaborn
+tqdm
+pyyaml
+pytest
+jupyter
