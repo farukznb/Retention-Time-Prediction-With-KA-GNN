@@ -1,4 +1,5 @@
-# Retention-Time-Prediction-With-KA-GNN
+# Retention-Time-Prediction-With-KA-GNN-and-PGM
+
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/farukznb/Retention-Time-Prediction-With-KA-GNN)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -52,8 +53,3 @@ Refer to the [notebooks/](notebooks/) directory for example workflows.
 }
 ```
 
-## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Contact
-For any inquiries, please contact Faruk ZnB at farukzn@domain.com.
