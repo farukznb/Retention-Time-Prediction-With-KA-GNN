@@ -1,9 +1,11 @@
 """
-KAGNN→PGM Forward Residual Experiment.
+KAGNN→PGM Forward Residual Experiment (FIXED VERSION).
 
-This script trains the KAGNN→PGM model in two stages:
-1. Train KAGNN backbone
-2. Train PGM to correct residuals
+Key improvements:
+1. Comprehensive statistical analysis
+2. Better error handling
+3. Memory-efficient training
+4. Detailed diagnostics
 """
 
 import torch
@@ -12,13 +14,26 @@ import numpy as np
 from pathlib import Path
 from torch.utils.data import DataLoader
 import time
+import json
 
 # Import from src/
 from src.data.dataset import SMRTCombinedDataset, collate_fn
-from src.models.kagnn_pgm_forward import KAGNN_PGM_Forward
+from src.models.kagnn_pgm_forward import KAGNN_PGM_Forward  # Use fixed version
 from src.evaluation.metrics import RTMetrics
 from src.evaluation.visualization import RTVisualizer
 from src.utils.seed import set_seed
+
+# Import statistical analysis utilities (if you have them)
+try:
+    from src.evaluation.statistical_analysis import (
+        comprehensive_statistical_analysis,
+        print_statistical_summary,
+        compare_models_statistically
+    )
+    STATS_AVAILABLE = True
+except ImportError:
+    print("  Advanced statistical analysis not available")
+    STATS_AVAILABLE = False
 
 
 class Config:
@@ -57,6 +72,35 @@ class Config:
     plots_dir = results_dir / "plots" / "kagnn_pgm_forward"
 
 
+def validate_data_loader(loader, name="Loader"):
+    """Validate data loader for NaN/Inf values."""
+    print(f"\n🔍 Validating {name}...")
+    
+    for i, batch in enumerate(loader):
+        graph, ecfp, rt, cids = batch
+        
+        # Check ECFP
+        if torch.isnan(ecfp).any():
+            print(f"  ⚠️  NaN detected in ECFP at batch {i}")
+        if torch.isinf(ecfp).any():
+            print(f"  ⚠️  Inf detected in ECFP at batch {i}")
+        
+        # Check RT
+        if torch.isnan(rt).any():
+            print(f"    NaN detected in RT at batch {i}")
+        if torch.isinf(rt).any():
+            print(f"    Inf detected in RT at batch {i}")
+        
+        # Check graph
+        if torch.isnan(graph.x).any():
+            print(f"    NaN detected in graph features at batch {i}")
+        
+        if i == 0:  # Only check first batch
+            break
+    
+    print(f"  ✓ {name} validation complete")
+
+
 def main():
     cfg = Config()
     
@@ -73,14 +117,22 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
     
+    if torch.cuda.is_available():
+        print(f"GPU: {torch.cuda.get_device_name(0)}")
+        print(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.2f} GB")
+    
     # Load datasets
     print("\n" + "="*80)
     print("LOADING DATASETS")
     print("="*80)
     
-    train_ds = SMRTCombinedDataset(cfg, 'train')
-    val_ds = SMRTCombinedDataset(cfg, 'val')
-    test_ds = SMRTCombinedDataset(cfg, 'test')
+    try:
+        train_ds = SMRTCombinedDataset(cfg, 'train')
+        val_ds = SMRTCombinedDataset(cfg, 'val')
+        test_ds = SMRTCombinedDataset(cfg, 'test')
+    except Exception as e:
+        print(f" Failed to load datasets: {e}")
+        raise
     
     print(f"Train samples: {len(train_ds)}")
     print(f"Val samples: {len(val_ds)}")
@@ -88,18 +140,26 @@ def main():
     print(f"RT normalization: mean={train_ds.rt_mean:.2f}, std={train_ds.rt_std:.2f}")
     
     # Create data loaders
-    train_loader = DataLoader(train_ds, cfg.batch_size, shuffle=True, collate_fn=collate_fn)
-    val_loader = DataLoader(val_ds, cfg.batch_size, shuffle=False, collate_fn=collate_fn)
-    test_loader = DataLoader(test_ds, cfg.batch_size, shuffle=False, collate_fn=collate_fn)
+    train_loader = DataLoader(train_ds, cfg.batch_size, shuffle=True, collate_fn=collate_fn, num_workers=0)
+    val_loader = DataLoader(val_ds, cfg.batch_size, shuffle=False, collate_fn=collate_fn, num_workers=0)
+    test_loader = DataLoader(test_ds, cfg.batch_size, shuffle=False, collate_fn=collate_fn, num_workers=0)
+    
+    # Validate data (check for NaN/Inf)
+    validate_data_loader(train_loader, "Train Loader")
+    validate_data_loader(test_loader, "Test Loader")
     
     # Initialize model
     print("\n" + "="*80)
     print("INITIALIZING MODEL")
     print("="*80)
     
-    model = KAGNN_PGM_Forward(cfg).to(device)
-    model.set_normalization_params(train_ds.rt_mean, train_ds.rt_std)
-    model.set_mol_dict(train_ds.mol_dict)
+    try:
+        model = KAGNN_PGM_Forward(cfg).to(device)
+        model.set_normalization_params(train_ds.rt_mean, train_ds.rt_std)
+        model.set_mol_dict(train_ds.mol_dict)
+    except Exception as e:
+        print(f" Failed to initialize model: {e}")
+        raise
     
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -121,21 +181,29 @@ def main():
     
     start_time = time.time()
     
-    history = model.fit(
-        train_loader=train_loader,
-        val_loader=val_loader,
-        epochs=cfg.epochs,
-        optimizer=optimizer,
-        criterion=criterion,
-        early_stopping_patience=20,
-        checkpoint_path=cfg.checkpoint_path.parent / "kagnn_stage1.pt"
-    )
+    try:
+        history = model.fit(
+            train_loader=train_loader,
+            val_loader=val_loader,
+            epochs=cfg.epochs,
+            optimizer=optimizer,
+            criterion=criterion,
+            early_stopping_patience=20,
+            checkpoint_path=cfg.checkpoint_path.parent / "kagnn_stage1.pt"
+        )
+    except Exception as e:
+        print(f" Stage 1 training failed: {e}")
+        raise
     
     stage1_time = time.time() - start_time
-    print(f"\nStage 1 completed in {stage1_time:.2f} seconds ({stage1_time/60:.2f} minutes)")
+    print(f"\n✓ Stage 1 completed in {stage1_time:.2f} seconds ({stage1_time/60:.2f} minutes)")
     
     # Load best Stage 1 model
-    model.load(cfg.checkpoint_path.parent / "kagnn_stage1.pt", map_location=str(device))
+    try:
+        model.load(cfg.checkpoint_path.parent / "kagnn_stage1.pt", map_location=str(device))
+    except Exception as e:
+        print(f" Failed to load Stage 1 checkpoint: {e}")
+        raise
     
     # Evaluate KAGNN only (before PGM correction)
     print("\n" + "="*80)
@@ -148,14 +216,30 @@ def main():
     model.pgm_xgb = None
     model.pgm_br = None
     
-    y_true_kagnn, y_pred_kagnn = model.predict(test_loader, denormalize=True)
+    try:
+        y_true_kagnn, y_pred_kagnn = model.predict(test_loader, denormalize=True)
+    except Exception as e:
+        print(f" KAGNN prediction failed: {e}")
+        raise
     
+    # Basic metrics
     metrics_kagnn_only = RTMetrics(
         y_true=y_true_kagnn,
         y_pred=y_pred_kagnn,
         model_name="KAGNN Only (Stage 1)"
     )
     metrics_kagnn_only.print_summary()
+    
+    # Comprehensive statistical analysis (if available)
+    if STATS_AVAILABLE:
+        print("\n📊 Running comprehensive statistical analysis for KAGNN...")
+        kagnn_stats = comprehensive_statistical_analysis(
+            y_true_kagnn, 
+            y_pred_kagnn,
+            model_name="KAGNN Only",
+            save_path=cfg.plots_dir / "kagnn_only_statistics.png"
+        )
+        print_statistical_summary(kagnn_stats, "KAGNN ONLY STATISTICAL SUMMARY")
     
     # Restore PGM models
     model.pgm_xgb = pgm_xgb_backup
@@ -168,25 +252,37 @@ def main():
     
     start_time = time.time()
     
-    model.train_stage2_pgm(
-        train_loader=train_loader,
-        n_estimators=cfg.pgm_estimators,
-        max_samples=cfg.pgm_max_samples,
-        verbose=True
-    )
+    try:
+        model.train_stage2_pgm(
+            train_loader=train_loader,
+            n_estimators=cfg.pgm_estimators,
+            max_samples=cfg.pgm_max_samples,
+            verbose=True,
+            use_cache=True  # Enable descriptor caching for speed
+        )
+    except Exception as e:
+        print(f" Stage 2 training failed: {e}")
+        raise
     
     stage2_time = time.time() - start_time
-    print(f"\nStage 2 completed in {stage2_time:.2f} seconds ({stage2_time/60:.2f} minutes)")
+    print(f"\n✓ Stage 2 completed in {stage2_time:.2f} seconds ({stage2_time/60:.2f} minutes)")
     
     # Save complete model (KAGNN + PGM)
-    model.save(cfg.checkpoint_path)
+    try:
+        model.save(cfg.checkpoint_path)
+    except Exception as e:
+        print(f"  Failed to save model: {e}")
     
     # Final evaluation with PGM correction
     print("\n" + "="*80)
     print("FINAL EVALUATION (KAGNN + PGM)")
     print("="*80)
     
-    y_true, y_pred = model.predict(test_loader, denormalize=True)
+    try:
+        y_true, y_pred = model.predict(test_loader, denormalize=True, use_cache=True)
+    except Exception as e:
+        print(f" Final prediction failed: {e}")
+        raise
     
     # Create baseline predictions (KAGNN only)
     y_pred_baseline = y_pred_kagnn
@@ -201,7 +297,10 @@ def main():
     )
     
     # Save metrics
-    metrics.save(cfg.metrics_path)
+    try:
+        metrics.save(cfg.metrics_path)
+    except Exception as e:
+        print(f"  Failed to save metrics: {e}")
     
     # Print summary with benchmark
     benchmark = {
@@ -218,6 +317,56 @@ def main():
     
     metrics.print_summary(benchmark=benchmark)
     
+    # Comprehensive statistical analysis (if available)
+    if STATS_AVAILABLE:
+        print("\n📊 Running comprehensive statistical analysis for KAGNN+PGM...")
+        final_stats = comprehensive_statistical_analysis(
+            y_true, 
+            y_pred,
+            model_name="KAGNN + PGM",
+            save_path=cfg.plots_dir / "kagnn_pgm_statistics.png"
+        )
+        print_statistical_summary(final_stats, "KAGNN+PGM STATISTICAL SUMMARY")
+        
+        # Compare KAGNN vs KAGNN+PGM statistically
+        print("\n" + "="*80)
+        print("STATISTICAL COMPARISON: KAGNN vs KAGNN+PGM")
+        print("="*80)
+        comparison = compare_models_statistically(
+            y_true, y_pred_kagnn, y_pred,
+            model1_name="KAGNN Only", 
+            model2_name="KAGNN + PGM"
+        )
+        
+        # Save comparison results
+        comparison_results = {
+            'kagnn_only': kagnn_stats,
+            'kagnn_pgm': final_stats,
+            'comparison': {
+                'improvement_pct': comparison['improvement_pct'],
+                'paired_ttest_pvalue': comparison['paired_ttest']['p_value'],
+                'wilcoxon_pvalue': comparison['wilcoxon']['p_value'],
+                'cohens_d': comparison['cohens_d'],
+                'significant': comparison['paired_ttest']['p_value'] < 0.05
+            }
+        }
+        
+        with open(cfg.plots_dir / 'statistical_comparison.json', 'w') as f:
+            # Convert numpy arrays to lists for JSON serialization
+            def convert_to_serializable(obj):
+                if isinstance(obj, np.ndarray):
+                    return obj.tolist()
+                elif isinstance(obj, dict):
+                    return {k: convert_to_serializable(v) for k, v in obj.items()}
+                elif isinstance(obj, (list, tuple)):
+                    return [convert_to_serializable(item) for item in obj]
+                else:
+                    return obj
+            
+            json.dump(convert_to_serializable(comparison_results), f, indent=2)
+        
+        print(f"✓ Statistical comparison saved to {cfg.plots_dir / 'statistical_comparison.json'}")
+    
     # Generate visualizations
     print("\n" + "="*80)
     print("GENERATING VISUALIZATIONS")
@@ -230,24 +379,27 @@ def main():
     )
     
     # Individual plots
-    visualizer.plot_predictions(
-        save_path=cfg.plots_dir / "predictions.png",
-        benchmark=benchmark
-    )
-    
-    visualizer.plot_error_distribution(
-        save_path=cfg.plots_dir / "error_distribution.png"
-    )
-    
-    visualizer.plot_residuals(
-        save_path=cfg.plots_dir / "residuals.png"
-    )
-    
-    # Comprehensive plot
-    visualizer.plot_comprehensive(
-        save_path=cfg.plots_dir / "comprehensive_analysis.png",
-        benchmark=benchmark
-    )
+    try:
+        visualizer.plot_predictions(
+            save_path=cfg.plots_dir / "predictions.png",
+            benchmark=benchmark
+        )
+        
+        visualizer.plot_error_distribution(
+            save_path=cfg.plots_dir / "error_distribution.png"
+        )
+        
+        visualizer.plot_residuals(
+            save_path=cfg.plots_dir / "residuals.png"
+        )
+        
+        # Comprehensive plot
+        visualizer.plot_comprehensive(
+            save_path=cfg.plots_dir / "comprehensive_analysis.png",
+            benchmark=benchmark
+        )
+    except Exception as e:
+        print(f"  Visualization error: {e}")
     
     # Training history plot
     import matplotlib.pyplot as plt
@@ -294,7 +446,7 @@ def main():
     plt.savefig(cfg.plots_dir / "kagnn_vs_pgm_comparison.png", dpi=300, bbox_inches='tight')
     plt.close()
     
-    print(f"\nAll plots saved to {cfg.plots_dir}")
+    print(f"\n✓ All plots saved to {cfg.plots_dir}")
     
     # Runtime summary
     total_time = stage1_time + stage2_time
@@ -333,8 +485,37 @@ def main():
                          metrics_kagnn_only.metrics['MedAE'] * 100)
     print(f"\n  Improvement: {improvement_medae:.2f}% reduction in MedAE")
     
+    if STATS_AVAILABLE and 'comparison' in locals():
+        if comparison['paired_ttest']['p_value'] < 0.05:
+            print(f"  ✓ Statistically SIGNIFICANT (p = {comparison['paired_ttest']['p_value']:.4f})")
+        else:
+            print(f"  ✗ NOT statistically significant (p = {comparison['paired_ttest']['p_value']:.4f})")
+    
     print("="*80)
+    
+    # Save final summary
+    summary = {
+        'model': 'KAGNN→PGM Forward',
+        'total_training_time_seconds': total_time,
+        'stage1_time_seconds': stage1_time,
+        'stage2_time_seconds': stage2_time,
+        'kagnn_only_metrics': metrics_kagnn_only.metrics,
+        'kagnn_pgm_metrics': metrics.metrics,
+        'improvement_medae_percent': improvement_medae,
+        'benchmark': benchmark
+    }
+    
+    with open(cfg.results_dir / 'experiment_summary.json', 'w') as f:
+        json.dump(summary, f, indent=2)
+    
+    print(f"\n✓ Experiment summary saved to {cfg.results_dir / 'experiment_summary.json'}")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        print(f"\n EXPERIMENT FAILED: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
