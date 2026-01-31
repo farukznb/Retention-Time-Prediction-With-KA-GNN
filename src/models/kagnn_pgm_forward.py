@@ -35,7 +35,7 @@ try:
         get_bond_feature_dims
     )
     KAGNN_AVAILABLE = True
-    print("✓ Official KAGNN imported successfully")
+    print(" Official KAGNN imported successfully")
     
     # Validate API
     try:
@@ -295,7 +295,7 @@ class KAGNN_PGM_Forward(BaseRTModel):
                 dropout=config.dropout
             )
             
-            print("✓ Using GAT-based fallback implementation")
+            print(" Using GAT-based fallback implementation")
         
         self.dropout = nn.Dropout(config.dropout)
         
@@ -344,7 +344,7 @@ class KAGNN_PGM_Forward(BaseRTModel):
     def set_mol_dict(self, mol_dict: Dict):
         """Set molecule dictionary for descriptor extraction."""
         self.mol_dict = mol_dict
-        print(f"✓ Molecule dictionary set ({len(mol_dict)} molecules)")
+        print(f" Molecule dictionary set ({len(mol_dict)} molecules)")
     
     def train_stage2_pgm(
         self,
@@ -460,7 +460,7 @@ class KAGNN_PGM_Forward(BaseRTModel):
             mae_br = np.mean(np.abs(y_train - pred_br))
             mae_ensemble = np.mean(np.abs(y_train - pred_ensemble))
             
-            print(f"\n✓ PGM training complete")
+            print(f"\n PGM training complete")
             print(f"   XGBoost MAE (residual):     {mae_xgb:.4f}")
             print(f"   Bayesian Ridge MAE:         {mae_br:.4f}")
             print(f"   Ensemble MAE:               {mae_ensemble:.4f}")
@@ -561,13 +561,13 @@ class KAGNN_PGM_Forward(BaseRTModel):
         # Save PGM models separately
         if self.pgm_xgb is not None:
             joblib.dump(self.pgm_xgb, path.parent / f"{path.stem}_xgb.pkl")
-            print(f"✓ XGBoost saved to {path.parent / f'{path.stem}_xgb.pkl'}")
+            print(f" XGBoost saved to {path.parent / f'{path.stem}_xgb.pkl'}")
         
         if self.pgm_br is not None:
             joblib.dump(self.pgm_br, path.parent / f"{path.stem}_br.pkl")
-            print(f"✓ Bayesian Ridge saved to {path.parent / f'{path.stem}_br.pkl'}")
+            print(f" Bayesian Ridge saved to {path.parent / f'{path.stem}_br.pkl'}")
         
-        print(f"✓ Model checkpoint saved to {path}")
+        print(f" Model checkpoint saved to {path}")
     
     def load(self, path, map_location=None):
         """Load model including PGM components (IMPROVED)."""
@@ -594,14 +594,14 @@ class KAGNN_PGM_Forward(BaseRTModel):
         
         if xgb_path.exists():
             self.pgm_xgb = joblib.load(xgb_path)
-            print(f"✓ XGBoost loaded from {xgb_path}")
+            print(f" XGBoost loaded from {xgb_path}")
         else:
             print(f"  XGBoost model not found at {xgb_path}")
         
         if br_path.exists():
             self.pgm_br = joblib.load(br_path)
-            print(f"✓ Bayesian Ridge loaded from {br_path}")
+            print(f" Bayesian Ridge loaded from {br_path}")
         else:
             print(f"  Bayesian Ridge model not found at {br_path}")
         
-        print(f"✓ Model loaded from {path}")
+        print(f" Model loaded from {path}")
