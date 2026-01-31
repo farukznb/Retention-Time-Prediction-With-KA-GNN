@@ -1100,7 +1100,7 @@ class ComprehensiveStatisticalAnalyzer:
         
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white')
-            print(f"✓ Model comparison plot saved to {save_path}")
+            print(f" Model comparison plot saved to {save_path}")
         
         return fig
     
@@ -1132,7 +1132,7 @@ class ComprehensiveStatisticalAnalyzer:
                         return obj
                 
                 json.dump(convert(self.results), f, indent=2)
-            print(f"✓ Metrics exported to {metrics_file}")
+            print(f" Metrics exported to {metrics_file}")
         
         # Export to CSV
         if 'metrics' in self.results:
@@ -1148,14 +1148,14 @@ class ComprehensiveStatisticalAnalyzer:
             df = pd.DataFrame([flat_metrics])
             csv_file = export_path / f"{self.model_name}_metrics.csv"
             df.to_csv(csv_file, index=False)
-            print(f"✓ Metrics exported to {csv_file}")
+            print(f" Metrics exported to {csv_file}")
         
         # Export comparison results
         if 'comparison' in self.results:
             comp_file = export_path / f"{self.model_name}_comparison.json"
             with open(comp_file, 'w') as f:
                 json.dump(self.results['comparison'], f, indent=2, default=str)
-            print(f"✓ Comparison results exported to {comp_file}")
+            print(f" Comparison results exported to {comp_file}")
     
     def print_summary_report(self):
         """Print comprehensive summary report to console"""
