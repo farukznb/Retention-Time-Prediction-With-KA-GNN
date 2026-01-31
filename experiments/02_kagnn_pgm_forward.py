@@ -81,9 +81,9 @@ def validate_data_loader(loader, name="Loader"):
         
         # Check ECFP
         if torch.isnan(ecfp).any():
-            print(f"  ⚠️  NaN detected in ECFP at batch {i}")
+            print(f"    NaN detected in ECFP at batch {i}")
         if torch.isinf(ecfp).any():
-            print(f"  ⚠️  Inf detected in ECFP at batch {i}")
+            print(f"    Inf detected in ECFP at batch {i}")
         
         # Check RT
         if torch.isnan(rt).any():
@@ -98,7 +98,7 @@ def validate_data_loader(loader, name="Loader"):
         if i == 0:  # Only check first batch
             break
     
-    print(f"  ✓ {name} validation complete")
+    print(f"   {name} validation complete")
 
 
 def main():
@@ -487,9 +487,9 @@ def main():
     
     if STATS_AVAILABLE and 'comparison' in locals():
         if comparison['paired_ttest']['p_value'] < 0.05:
-            print(f"  ✓ Statistically SIGNIFICANT (p = {comparison['paired_ttest']['p_value']:.4f})")
+            print(f"   Statistically SIGNIFICANT (p = {comparison['paired_ttest']['p_value']:.4f})")
         else:
-            print(f"  ✗ NOT statistically significant (p = {comparison['paired_ttest']['p_value']:.4f})")
+            print(f"   NOT statistically significant (p = {comparison['paired_ttest']['p_value']:.4f})")
     
     print("="*80)
     
