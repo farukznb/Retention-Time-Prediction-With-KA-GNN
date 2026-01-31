@@ -34,9 +34,9 @@ try:
         run_comprehensive_analysis
     )
     STATS_AVAILABLE = True
-    print("✓ Comprehensive statistical analysis available")
+    print(" Comprehensive statistical analysis available")
 except ImportError:
-    print("⚠️  Advanced statistical analysis not available")
+    print("  Advanced statistical analysis not available")
     print("   Install the statistical_analysis module for full analysis")
     STATS_AVAILABLE = False
 
@@ -83,7 +83,7 @@ def validate_data_quality(loader, name="Loader", max_batches=5):
         name: Name for logging
         max_batches: Number of batches to check
     """
-    print(f"\n🔍 Validating {name} data quality...")
+    print(f"\n Validating {name} data quality...")
     
     issues = []
     
@@ -215,7 +215,7 @@ def main():
         raise
     
     stage1_time = time.time() - start_time
-    print(f"\n✓ Stage 1 completed in {stage1_time:.2f} seconds ({stage1_time/60:.2f} minutes)")
+    print(f"\n Stage 1 completed in {stage1_time:.2f} seconds ({stage1_time/60:.2f} minutes)")
     
     # Evaluate PGM only (before KAGNN correction)
     print("\n" + "="*80)
@@ -317,7 +317,7 @@ def main():
         raise
     
     stage2_time = time.time() - start_time
-    print(f"\n✓ Stage 2 completed in {stage2_time:.2f} seconds ({stage2_time/60:.2f} minutes)")
+    print(f"\n Stage 2 completed in {stage2_time:.2f} seconds ({stage2_time/60:.2f} minutes)")
     
     # Load best model
     try:
@@ -353,7 +353,7 @@ def main():
     try:
         metrics.save(cfg.metrics_path)
     except Exception as e:
-        print(f"⚠️  Failed to save metrics: {e}")
+        print(f"  Failed to save metrics: {e}")
     
     # Print summary with benchmark
     benchmark = {
@@ -425,7 +425,7 @@ def main():
         with open(cfg.stats_dir / 'comparison_summary.json', 'w') as f:
             json.dump(comparison_summary, f, indent=2)
         
-        print(f"\n✓ Statistical analysis complete")
+        print(f"\n Statistical analysis complete")
         print(f"  Improvement: {comparison_summary['improvement_pct']:.2f}%")
         print(f"  Significant: {'✓ YES' if comparison_summary['significant'] else '✗ NO'}")
         print(f"  p-value: {comparison_summary['ttest_pvalue']:.4f}")
@@ -509,7 +509,7 @@ def main():
     plt.savefig(cfg.plots_dir / "pgm_vs_kagnn_comparison.png", dpi=300, bbox_inches='tight')
     plt.close()
     
-    print(f"\n✓ All plots saved to {cfg.plots_dir}")
+    print(f"\n All plots saved to {cfg.plots_dir}")
     
     # Runtime summary
     total_time = stage1_time + stage2_time
@@ -552,9 +552,9 @@ def main():
     
     if STATS_AVAILABLE and 'comparison_summary' in locals():
         if comparison_summary['significant']:
-            print(f"  ✓ Statistically SIGNIFICANT (p = {comparison_summary['ttest_pvalue']:.4f})")
+            print(f"   Statistically SIGNIFICANT (p = {comparison_summary['ttest_pvalue']:.4f})")
         else:
-            print(f"  ✗ NOT statistically significant (p = {comparison_summary['ttest_pvalue']:.4f})")
+            print(f"   NOT statistically significant (p = {comparison_summary['ttest_pvalue']:.4f})")
     
     print("="*80)
     
