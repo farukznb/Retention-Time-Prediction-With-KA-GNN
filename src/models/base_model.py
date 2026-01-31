@@ -174,7 +174,7 @@ class SMRTDataLoader:
     
     def _load_ecfp(self):
         """Load ECFP fingerprints"""
-        print(f"📖 Reading ECFP: {self.config.ECFP_FILE}")
+        print(f" Reading ECFP: {self.config.ECFP_FILE}")
         
         ecfp_dict = {}
         try:
@@ -205,7 +205,7 @@ class SMRTDataLoader:
                     except Exception as e:
                         continue
             
-            print(f"  ✓ Loaded {len(ecfp_dict):,} ECFP fingerprints")
+            print(f"   Loaded {len(ecfp_dict):,} ECFP fingerprints")
             
         except Exception as e:
             print(f"   Error loading ECFP: {e}")
@@ -215,7 +215,7 @@ class SMRTDataLoader:
     
     def _load_sdf(self):
         """Load SDF file and extract molecules"""
-        print(f"📖 Reading SDF: {self.config.SDF_FILE}")
+        print(f" Reading SDF: {self.config.SDF_FILE}")
         
         mol_dict = {}
         suppl = Chem.SDMolSupplier(str(self.config.SDF_FILE), sanitize=True)
@@ -246,7 +246,7 @@ class SMRTDataLoader:
             except Exception as e:
                 continue
         
-        print(f"  ✓ Loaded {len(mol_dict):,} valid molecules")
+        print(f"   Loaded {len(mol_dict):,} valid molecules")
         return mol_dict
     
     def _sync_and_clean(self):
@@ -270,7 +270,7 @@ class SMRTDataLoader:
         self.ecfp_dict = {k: v for k, v in self.ecfp_dict.items() if k in common_ids}
         self.mol_dict = {k: v for k, v in self.mol_dict.items() if k in common_ids}
         
-        print(f"✓ Synchronization complete. Final dataset: {len(self.df):,} compounds")
+        print(f" Synchronization complete. Final dataset: {len(self.df):,} compounds")
     
     def _normalize_rt(self):
         """Normalize retention times"""
@@ -602,12 +602,12 @@ def train_kagnn_model(config, train_loader, val_loader, test_loader, data_loader
                 break
     
     training_time = time.time() - start_time
-    print(f"\n✓ Training completed in {training_time:.2f}s ({training_time/60:.2f} min)")
+    print(f"\n Training completed in {training_time:.2f}s ({training_time/60:.2f} min)")
     
     # Load best model
     checkpoint = torch.load(config.CHECKPOINT_PATH, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
-    print(f"✓ Loaded best model from epoch {checkpoint['epoch']} (Val Loss: {checkpoint['val_loss']:.4f})")
+    print(f" Loaded best model from epoch {checkpoint['epoch']} (Val Loss: {checkpoint['val_loss']:.4f})")
     
     # Evaluate on test set
     print("\n" + "="*80)
@@ -830,7 +830,7 @@ def run_statistical_analysis(y_true, y_pred, save_dir):
     with open(stats_path, 'w') as f:
         json.dump(results, f, indent=2)
     
-    print(f"✓ Statistical analysis saved to {stats_path}")
+    print(f" Statistical analysis saved to {stats_path}")
     
     # Print summary
     print("\n" + "="*80)
