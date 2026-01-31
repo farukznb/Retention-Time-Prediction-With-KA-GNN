@@ -39,8 +39,8 @@ try:
     print("✓ Official KAGNN imported successfully")
     
 except ImportError as e:
-    print(f"❌ Failed to import official KAGNN: {e}")
-    print("📌 Falling back to GAT-based implementation...")
+    print(f"Failed to import official KAGNN: {e}")
+    print("Falling back to GAT-based implementation...")
     KAGNN_AVAILABLE = False
     
     # Fallback to GAT
@@ -91,7 +91,7 @@ class SMRTDataLoader:
         return ecfp_dict
     
     def _load_sdf(self, path):
-        print(f"📖 Reading SDF & Initializing RingInfo...")
+        print("Reading SDF & Initializing RingInfo...")
         mol_dict = {}
         suppl = Chem.SDMolSupplier(path)
         for mol in suppl:
@@ -113,12 +113,12 @@ class SMRTDataLoader:
     def _sync_and_clean(self):
         valid_ids = set(self.df['pubchem']) & set(self.ecfp_dict.keys()) & set(self.mol_dict.keys())
         self.df = self.df[self.df['pubchem'].isin(valid_ids)].reset_index(drop=True)
-        print(f"✓ Sync complete. Dataset size: {len(self.df)}")
+        print(f"Sync complete. Dataset size: {len(self.df)}")
     
     def _normalize_rt(self):
         self.df['rt_original'] = self.df['rt'].copy()
         self.df['rt'] = self.rt_scaler.fit_transform(self.df[['rt']]).flatten()
-        print(f"✓ RT normalized: mean={self.df['rt'].mean():.4f}, std={self.df['rt'].std():.4f}")
+        print(f"RT normalized: mean={self.df['rt'].mean():.4f}, std={self.df['rt'].std():.4f}")
     
     def denormalize_rt(self, rt_normalized):
         return self.rt_scaler.inverse_transform(rt_normalized.reshape(-1, 1)).flatten()
@@ -215,10 +215,10 @@ class FixedBaselineKAGNN(nn.Module):
                     ogb_encoders=True
                 )
                 
-                print("✓ Using official KAGIN with OGB encoders")
+                print("Using official KAGIN with OGB encoders")
             except Exception as e:
-                print(f"⚠️ KAGIN initialization failed: {e}")
-                print("📌 Using fallback GAT implementation")
+                print(f"KAGIN initialization failed: {e}")
+                print("Using fallback GAT implementation")
                 KAGNN_AVAILABLE = False
         
         if not KAGNN_AVAILABLE:
@@ -244,7 +244,7 @@ class FixedBaselineKAGNN(nn.Module):
             )
             
             self.layer_norms = nn.ModuleList([nn.LayerNorm(hidden_dim) for _ in range(num_layers)])
-            print("✓ Using GAT fallback implementation")
+            print("Using GAT fallback implementation")
         
         # ECFP encoder (using KAN if available)
         if KAGNN_AVAILABLE:
@@ -257,7 +257,7 @@ class FixedBaselineKAGNN(nn.Module):
                     4,  # Grid size
                     3   # Spline order
                 )
-                print("✓ Using KAN for ECFP encoding")
+                print("Using KAN for ECFP encoding")
             except:
                 self.ecfp_kan = nn.Sequential(
                     nn.Linear(1024, hidden_dim * 2),
@@ -350,7 +350,7 @@ def train_fixed_kagnn(train_loader, val_loader, test_loader, rt_scaler,
     train_losses = []
     val_losses = []
     
-    print(f"\n🧠 Model parameters: {sum(p.numel() for p in model.parameters()):,}")
+    print(f"\nModel parameters: {sum(p.numel() for p in model.parameters()):,}")
     print(f"Using {'official KAGNN' if model.use_kaginn else 'GAT fallback'}")
     
     for epoch in range(1, epochs + 1):
@@ -390,7 +390,7 @@ def train_fixed_kagnn(train_loader, val_loader, test_loader, rt_scaler,
         scheduler.step(val_loss)
         
         if epoch % 5 == 0:
-            print(f"📊 Epoch {epoch:03d} | Train Loss: {train_loss:.4f} | "
+            print(f"Epoch {epoch:03d} | Train Loss: {train_loss:.4f} | "
                   f"Val Loss: {val_loss:.4f} | LR: {optimizer.param_groups[0]['lr']:.6f}")
         
         # Early stopping
@@ -402,12 +402,12 @@ def train_fixed_kagnn(train_loader, val_loader, test_loader, rt_scaler,
         else:
             counter += 1
             if counter >= patience:
-                print(f"🛑 Early stopping at epoch {epoch}")
+                print(f"Early stopping at epoch {epoch}")
                 break
     
     # Load best model
     model.load_state_dict(torch.load('best_fixed_kagnn.pth'))
-    print(f"✓ Best model loaded (Val Loss: {best_val_loss:.4f})")
+    print(f"Best model loaded (Val Loss: {best_val_loss:.4f})")
     
     # Evaluate on test set
     model.eval()
@@ -424,7 +424,8 @@ def train_fixed_kagnn(train_loader, val_loader, test_loader, rt_scaler,
     y_true = np.array(all_trues)
     y_pred = np.array(all_preds)
     
-    # Compute metrics
+    # Compute metrics (all 9 metrics including threshold accuracy)
+    abs_errors = np.abs(y_true - y_pred)
     metrics = {
         'MedAE': median_absolute_error(y_true, y_pred),
         'MAE': mean_absolute_error(y_true, y_pred),
@@ -432,13 +433,20 @@ def train_fixed_kagnn(train_loader, val_loader, test_loader, rt_scaler,
         'R2': r2_score(y_true, y_pred),
         'Pearson': pearsonr(y_true, y_pred)[0],
         'Spearman': spearmanr(y_true, y_pred)[0],
+        # Threshold accuracy metrics (3 missing metrics)
+        'Pct_le_10s': float(np.mean(abs_errors <= 10) * 100),
+        'Pct_le_30s': float(np.mean(abs_errors <= 30) * 100),
+        'Pct_le_60s': float(np.mean(abs_errors <= 60) * 100),
     }
     
     print("\n" + "="*80)
     print("FIXED KAGNN TEST SET PERFORMANCE")
     print("="*80)
     for k, v in metrics.items():
-        print(f"  {k:12s}: {v:8.4f}")
+        if isinstance(v, float) and 'Pct' in k:
+            print(f"  {k:12s}: {v:8.2f}%")
+        else:
+            print(f"  {k:12s}: {v:8.4f}")
     
     return model, metrics, train_losses, val_losses
 
@@ -477,4 +485,5 @@ if __name__ == "__main__":
         hidden_dim=256, dropout=0.15, epochs=150, patience=20
     )
     
-    print("\n✅ Fixed KAGNN training complete!")
+    print("\nFixed KAGNN training complete!")
+
