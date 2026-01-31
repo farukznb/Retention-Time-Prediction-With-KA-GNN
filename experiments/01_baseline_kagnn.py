@@ -817,7 +817,7 @@ plt.tight_layout()
 plt.savefig(cfg.output_dir / "residuals.png", dpi=300, bbox_inches='tight')
 plt.show()
 
-print(f"✓ Residuals plot saved to {cfg.output_dir / 'residuals.png'}")
+print(f" Residuals plot saved to {cfg.output_dir / 'residuals.png'}")
 
 # ============================================================================
 # CELL 16: FINAL SUMMARY
