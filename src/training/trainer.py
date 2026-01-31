@@ -421,7 +421,7 @@ class Trainer:
                         self.optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
                 
                 if verbose:
-                    print(f"✓ Best checkpoint loaded from {self.checkpoint_path}")
+                    print(f" Best checkpoint loaded from {self.checkpoint_path}")
             except Exception as e:
                 print(f" Failed to load checkpoint: {e}")
                 if verbose:
