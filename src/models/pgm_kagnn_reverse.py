@@ -40,10 +40,10 @@ try:
         get_bond_feature_dims
     )
     KAGNN_AVAILABLE = True
-    print("✓ Official KAGNN imported successfully")
+    print("Official KAGNN imported successfully")
 except ImportError as e:
-    print(f" Failed to import official KAGNN: {e}")
-    print(" Falling back to GAT-based implementation...")
+    print(f"Failed to import official KAGNN: {e}")
+    print("Falling back to GAT-based implementation...")
     KAGNN_AVAILABLE = False
     from torch_geometric.nn import GATConv, global_mean_pool, global_max_pool
 
@@ -145,9 +145,9 @@ class ResidualKAGNN(nn.Module):
                     ogb_encoders=True
                 )
                 
-                print("✓ Using official KAGIN for residual prediction")
+                print("Using official KAGIN for residual prediction")
             except Exception as e:
-                print(f" KAGIN initialization failed: {e}")
+                print(f"KAGIN initialization failed: {e}")
                 KAGNN_AVAILABLE = False
         
         if not KAGNN_AVAILABLE:
@@ -289,7 +289,7 @@ class PGMKAGNNTrainer:
     
     def optimize_pgm(self, X_train, y_train, n_trials=30):
         """Optimize XGBoost hyperparameters"""
-        print(f"\n🔍 Optimizing PGM hyperparameters ({n_trials} trials)...")
+        print(f"\nOptimizing PGM hyperparameters ({n_trials} trials)...")
         
         def objective(trial):
             params = {
@@ -313,7 +313,7 @@ class PGMKAGNNTrainer:
         study = optuna.create_study(direction='maximize')
         study.optimize(objective, n_trials=n_trials, show_progress_bar=True)
         
-        print(f"✓ Best 3-fold CV R²: {study.best_value:.4f}")
+        print(f"Best 3-fold CV R2: {study.best_value:.4f}")
         return study.best_params
     
     def train_stage1_pgm(self, optimize=True, n_trials=30):
@@ -359,15 +359,15 @@ class PGMKAGNNTrainer:
         train_r2 = r2_score(y_train, self.pgm_train_preds)
         val_r2 = r2_score(y_val, self.pgm_val_preds)
         
-        print(f"\n PGM Performance:")
-        print(f"   Train R²: {train_r2:.4f}")
-        print(f"   Val R²: {val_r2:.4f}")
+        print(f"\nPGM Performance:")
+        print(f"   Train R2: {train_r2:.4f}")
+        print(f"   Val R2: {val_r2:.4f}")
         
         # Save
         joblib.dump(self.pgm_xgb, 'pgm_xgboost.pkl')
         joblib.dump(self.pgm_br, 'pgm_bayesian_ridge.pkl')
         joblib.dump(self.pgm_scaler, 'pgm_scaler.pkl')
-        print("✓ PGM models saved")
+        print("PGM models saved")
     
     def train_stage2_kagnn(self, hidden_dim=256, dropout=0.2, epochs=100, patience=15):
         """Train KAGNN to predict residuals"""
@@ -379,7 +379,7 @@ class PGMKAGNNTrainer:
         optimizer = torch.optim.AdamW(self.kagnn.parameters(), lr=5e-4, weight_decay=1e-4)
         scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=7)
         
-        print(f" KAGNN parameters: {sum(p.numel() for p in self.kagnn.parameters()):,}")
+        print(f"KAGNN parameters: {sum(p.numel() for p in self.kagnn.parameters()):,}")
         
         # Create PGM prediction dictionaries
         pgm_train_dict = self._get_pgm_dict(self.train_loader)
@@ -434,7 +434,7 @@ class PGMKAGNNTrainer:
             scheduler.step(val_loss)
             
             if epoch % 5 == 0:
-                print(f"📊 Epoch {epoch:03d} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
+                print(f"Epoch {epoch:03d} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
             
             # Early stopping
             if val_loss < best_val_loss - 0.001:
@@ -445,12 +445,12 @@ class PGMKAGNNTrainer:
             else:
                 counter += 1
                 if counter >= patience:
-                    print(f" Early stopping at epoch {epoch}")
+                    print(f"Early stopping at epoch {epoch}")
                     break
         
         # Load best
         self.kagnn.load_state_dict(torch.load('best_kagnn_residual.pth'))
-        print(f"✓ Best KAGNN loaded (Val Loss: {best_val_loss:.4f})")
+        print(f"Best KAGNN loaded (Val Loss: {best_val_loss:.4f})")
     
     def _get_pgm_dict(self, loader):
         """Get PGM predictions as dictionary"""
@@ -492,8 +492,9 @@ class PGMKAGNNTrainer:
         y_pred_pgm = np.array(all_preds_pgm)
         y_pred_final = np.array(all_preds_final)
         
-        # Metrics
+        # Metrics (all 9 metrics including threshold accuracy)
         def compute_metrics(y_true, y_pred, name):
+            abs_errors = np.abs(y_true - y_pred)
             return {
                 'name': name,
                 'MedAE': median_absolute_error(y_true, y_pred),
@@ -502,6 +503,10 @@ class PGMKAGNNTrainer:
                 'R2': r2_score(y_true, y_pred),
                 'Pearson': pearsonr(y_true, y_pred)[0],
                 'Spearman': spearmanr(y_true, y_pred)[0],
+                # Threshold accuracy metrics (3 missing metrics)
+                'Pct_le_10s': float(np.mean(abs_errors <= 10) * 100),
+                'Pct_le_30s': float(np.mean(abs_errors <= 30) * 100),
+                'Pct_le_60s': float(np.mean(abs_errors <= 60) * 100),
             }
         
         metrics_pgm = compute_metrics(y_true, y_pred_pgm, "PGM Only")
@@ -519,9 +524,9 @@ class PGMKAGNNTrainer:
         
         improvement = (np.mean(errors_pgm) - np.mean(errors_final)) / np.mean(errors_pgm) * 100
         if t_pval < 0.05:
-            print(f"✓ SIGNIFICANT improvement: {improvement:.2f}% error reduction (p < 0.05)")
+            print(f"SIGNIFICANT improvement: {improvement:.2f}% error reduction (p < 0.05)")
         else:
-            print(f"✗ NOT statistically significant: {improvement:.2f}% (p ≥ 0.05)")
+            print(f"NOT statistically significant: {improvement:.2f}% (p >= 0.05)")
         
         return metrics_pgm, metrics_final
 
@@ -530,7 +535,7 @@ class PGMKAGNNTrainer:
 # MAIN EXPERIMENT
 # ============================================================================
 def run_pgm_kagnn_experiment():
-    """Complete PGM→KAGNN experiment"""
+    """Complete PGM->KAGNN experiment"""
     config = {
         'csv': '/path/to/SMRT_dataset.csv',
         'ecfp': '/path/to/SMRT_ECFP_1024_Fingerprints.txt',
@@ -587,10 +592,18 @@ def run_pgm_kagnn_experiment():
         print(f"\n{model_name}:")
         for metric in ['MedAE', 'MAE', 'RMSE', 'R2', 'Pearson']:
             values = [r[metric] for r in results]
-            print(f"  {metric:12s}: {np.mean(values):8.4f} ± {np.std(values):6.4f}")
+            print(f"  {metric:12s}: {np.mean(values):8.4f} +/- {np.std(values):6.4f}")
+        # Print threshold metrics
+        pct_10 = [r['Pct_le_10s'] for r in results]
+        pct_30 = [r['Pct_le_30s'] for r in results]
+        pct_60 = [r['Pct_le_60s'] for r in results]
+        print(f"  {'Pct_le_10s':12s}: {np.mean(pct_10):8.2f}% +/- {np.std(pct_10):6.2f}%")
+        print(f"  {'Pct_le_30s':12s}: {np.mean(pct_30):8.2f}% +/- {np.std(pct_30):6.2f}%")
+        print(f"  {'Pct_le_60s':12s}: {np.mean(pct_60):8.2f}% +/- {np.std(pct_60):6.2f}%")
     
-    print("\n PGM→KAGNN experiment complete!")
+    print("\nPGM->KAGNN experiment complete!")
 
 
 if __name__ == "__main__":
     run_pgm_kagnn_experiment()
+
