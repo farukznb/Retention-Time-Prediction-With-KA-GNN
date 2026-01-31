@@ -242,9 +242,9 @@ def main():
     for model_name, metrics_path in metrics_files.items():
         if metrics_path.exists():
             all_metrics[model_name] = load_metrics(metrics_path)
-            print(f"  ✓ Loaded {model_name}")
+            print(f"   Loaded {model_name}")
         else:
-            print(f"  ✗ Not found: {model_name} ({metrics_path})")
+            print(f"   Not found: {model_name} ({metrics_path})")
     
     if len(all_metrics) < 2:
         print("\nError: Need at least 2 models to compare. Run experiments first.")
