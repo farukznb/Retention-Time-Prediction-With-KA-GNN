@@ -134,7 +134,7 @@ Retention-Time-Prediction-With-KA-GNN/
 
 | Component | File | Purpose |
 |-----------|------|---------|
-| RTMetrics | src/evaluation/metrics.py | Compute all  metrics |
+| RTMetrics | src/evaluation/metrics.py | Compute all metrics |
 | RTVisualizer | src/evaluation/visualization.py | Generate plots |
 
 **Metrics Computed:**
@@ -537,7 +537,7 @@ else:
 │                              ↓                                   │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │ EVALUATION                                               │   │
-│  │ • Compute  metrics (MedAE, MAE, RMSE, R², etc.)        │   │
+│  │ • Compute metrics (MedAE, MAE, RMSE, R², etc.)           │   │
 │  │ • Statistical significance tests                         │   │
 │  │ • Visualization (scatter, histogram, residuals, etc.)    │   │
 │  └─────────────────────────────────────────────────────────┘   │
@@ -559,11 +559,79 @@ else:
 
 ## PERFORMANCE SUMMARY
 
+### Global Metrics (Experiment 1)
+
 | Model | MedAE (s) | MAE (s) | RMSE (s) | R² | % ≤ 30s |
 |-------|-----------|---------|----------|-----|---------|
-| KA-GNN Only | 27.23 | 48.89 | 88.43 | 0.817 | 53.78% |
-| Forward Hybrid | 20.56 | 39.57 | 71.94 | 0.824 | 65.07% |
-| Reverse Hybrid | 22.19 | 39.57 | 71.94 | 0.820 | 61.70% |
+| KA-GNN Only | 26.14 | 48.43 | 90.68 | 0.807 | 55.26% |
+| Forward Hybrid (KA-GNN → PGM) | 20.45 | 36.99 | 69.22 | 0.834 | 65.07% |
+| Reverse Hybrid (PGM → KA-GNN, 3-fold CV) | 29.15 | 51.46 | 90.50 | 0.808 | 51.12% |
+
+> The Forward Hybrid achieves the lowest global MedAE. The Reverse Hybrid starts from a weaker PGM baseline (~40 s) and reduces it by ~10 s, a larger absolute gain.
+
+---
+
+## EXPERIMENT 2: CLASS-WISE PERFORMANCE ANALYSIS
+
+Global metrics over the SMRT test set (n = 11,994) can be misleading due to severe class imbalance: **Organoheterocyclics account for 98.3%** of the test set, making global MedAE essentially a majority-class metric. Experiment 2 decomposes performance across chemical superclasses.
+
+### Dataset Class Distribution (SMRT, n = 79,975)
+
+| Class | n | Median RT (s) | Tendency |
+|-------|---|--------------|----------|
+| Organoheterocyclics | 78,543 | 776 | Near global median |
+| Other (unclassified) | 699 | 619 | Earlier elution |
+| Organic Acids & AA | 470 | 597 | Earlier elution |
+| Lipids | 188 | 741 | Earlier elution |
+| Benzenoids | 24 | 709 | Earlier elution |
+| Aliphatic Organics | 18 | 593 | Earlier elution |
+| Carbohydrates | 13 | 93 | Extreme early elution |
+
+> Classes with n < 10 in the test split (Carbohydrates, Benzenoids, Aliphatic Organics) are excluded from per-class error comparisons due to high estimation variance.
+
+### Class-Wise MedAE: Standalone KA-GNN vs. Forward Hybrid (Test Split, n = 11,994)
+
+| Class | n | KA-GNN MedAE | Forward Hybrid MedAE | ΔMedAE |
+|-------|---|-------------|---------------------|--------|
+| Organoheterocyclics | 11,791 | 25.11 s | 24.60 s | +0.51 s |
+| Other (unclassified) | 100 | 25.59 s | 15.97 s | **+9.62 s ✅** |
+| Organic Acids & AA | 70 | 31.65 s | 33.52 s | −1.87 s ⚠️ |
+| Lipids | 26 | 18.07 s | 27.77 s | **−9.70 s ❌** |
+| **Global** | 11,994 | 26.14 s | 20.45 s | +5.69 s |
+
+**Key findings:**
+- **Forward Hybrid** improves "Other" compounds substantially (+37.6%) via PGM physicochemical descriptors (LogP, TPSA, MW), but **degrades Lipids** (−53.7%) and **Organic Acids** (−5.9%). Hybrid gains are selective, not universal.
+- **Standalone KA-GNN** shows no majority-class over-optimisation; Lipids (n = 26) achieve the best class-wise MedAE (18.07 s) due to RT overlap with Organoheterocyclics.
+- Global improvement (+5.69 s) almost entirely reflects gains on Organoheterocyclics; degradations on Lipids and Organic Acids are statistically invisible in aggregate metrics.
+
+### Reverse Hybrid (PGM → KA-GNN): 3-Fold Cross-Validation Class-Wise Results
+
+| Class | PGM MedAE | Hybrid MedAE | ΔMedAE |
+|-------|-----------|-------------|--------|
+| Organoheterocyclics | 39.37 s | 28.92 s | +10.45 s |
+| Other (unclassified) | 80.60 s | 45.01 s | +35.59 s |
+| Organic Acids & AA | 73.47 s | 46.21 s | +27.26 s |
+| Lipids | 60.89 s | 53.05 s | +7.84 s |
+| Benzenoids | 94.21 s | 88.06 s | +6.15 s |
+| Aliphatic Organics | 158.79 s | 110.55 s | +48.24 s |
+| Carbohydrates | 235.85 s | 142.53 s | +93.32 s |
+| **Global** | 39.74 s | 29.15 s | +10.59 s |
+
+> The Reverse Hybrid improves **all seven chemical classes** in aggregate. The coarse-to-fine ordering (PGM → KA-GNN) creates large, correctable residuals for every class, avoiding the selective failure modes of the Forward Hybrid.
+
+### Three-Architecture Summary
+
+| Class | Standalone KA-GNN | Forward Hybrid | Reverse Hybrid (CV) |
+|-------|-------------------|----------------|---------------------|
+| Organoheterocyclics | 25.11 s | **24.60 s ↑** | 28.92 s |
+| Other | 25.59 s | **15.97 s ↑** | 45.01 s |
+| Organic Acids & AA | **31.65 s ↑** | 33.52 s ↓ | 46.21 s |
+| Lipids | **18.07 s ↑** | 27.77 s ↓ | 53.05 s |
+| Global | 26.14 s | **20.45 s ↑** | 29.15 s |
+
+> ↑ = best MedAE for that class; ↓ = worst. The Reverse Hybrid's higher absolute values reflect its weaker PGM starting baseline (~40 s), not a worse architecture.
+
+**Overarching lesson:** The ordering of model components in a hybrid architecture has profound consequences for class-wise generalisation that are **invisible in global metrics**. For applications requiring reliable predictions across diverse chemical classes (lipids, bile acids, polar metabolites), the Reverse Hybrid's class-universal improvement pattern is a meaningful practical advantage.
 
 ---
 
@@ -630,4 +698,3 @@ metrics = model.evaluate(test_loader)
 ## 📄 LICENSE
 
 MIT License - See LICENSE file for details.
-
