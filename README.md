@@ -598,9 +598,9 @@ Global metrics over the SMRT test set (n = 11,994) can be misleading due to seve
 | Class | n | KA-GNN MedAE | Forward Hybrid MedAE | ΔMedAE |
 |-------|---|-------------|---------------------|--------|
 | Organoheterocyclics | 11,791 | 25.11 s | 24.60 s | +0.51 s |
-| Other (unclassified) | 100 | 25.59 s | 15.97 s | **+9.62 s ✅** |
-| Organic Acids & AA | 70 | 31.65 s | 33.52 s | −1.87 s ⚠️ |
-| Lipids | 26 | 18.07 s | 27.77 s | **−9.70 s ❌** |
+| Other (unclassified) | 100 | 25.59 s | 15.97 s | **+9.62 s ** |
+| Organic Acids & AA | 70 | 31.65 s | 33.52 s | −1.87 s  |
+| Lipids | 26 | 18.07 s | 27.77 s | **−9.70 s ** |
 | **Global** | 11,994 | 26.14 s | 20.45 s | +5.69 s |
 
 **Key findings:**
