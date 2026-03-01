@@ -29,10 +29,14 @@ Retention-Time-Prediction-With-KA-GNN/
 │   └── processed/                               # Processed datasets
 │
 ├── experiments/                                 # Main experiment scripts
-│   ├── 01_baseline_kagnn.py                     # KA-GNN standalone model
-│   ├── 02_kagnn_pgm_forward.py                  # KA-GNN → PGM hybrid
-│   ├── 03_pgm_kagnn_reverse.py                  # PGM → KA-GNN hybrid
-│   └── 04_statistical_tests.py                  # Statistical comparison
+│   ├── 01_baseline_kagnn.py                     # KA-GNN standalone baseline
+│   ├── 02_kagnn_pgm_forward.py                  # KA-GNN → PGM forward hybrid
+│   ├── 03_pgm_kagnn_reverse.py                  # PGM → KA-GNN reverse hybrid
+│   ├── 04_statistical_tests.py                  # Statistical comparison & analysis
+│   ├── 05_pgm_kagin_classwise.py                # PGM → KA-GNN with class-wise analysis (3-Fold CV)
+│   ├── 06_classwise_kagnn_pgm_forward_hybrid.py # KA-GNN → PGM with class-wise analysis
+│   ├── 07_classwise_kagnn.py                    # KA-GNN baseline with class-wise analysis
+│   └── pgm_kagnn_training.py                    # PGM & KA-GNN training utility functions
 │
 ├── src/
 │   ├── data/                                    # Data utilities
