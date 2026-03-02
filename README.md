@@ -12,6 +12,11 @@ Predict chromatographic retention times (RT) using hybrid architectures combinin
 
 This repository implements state-of-the-art retention time (RT) prediction models for chromatographic analysis, combining Probabilistic Graphical Models (PGM) and Knowledge-Augmented Graph Neural Networks (KA-GNN) with a novel two-stage residual learning strategy.
 
+Two experiments are conducted with the **same three model architectures**, differing only in training strategy:
+
+- **Experiment 1 — Global Training:** Models are trained on the full dataset without class differentiation.
+- **Experiment 2 — Class-Wise Oriented Training:** Models are trained taking chemical superclasses into account (3-Fold CV).
+
 ### 2. FILE STRUCTURE
 
 ```
@@ -28,59 +33,64 @@ Retention-Time-Prediction-With-KA-GNN/
 │   │   └── SMRT_dataset.sdf                     # Molecular structures
 │   └── processed/                               # Processed datasets
 │
-├── experiments/                                 # Main experiment scripts
-│   ├── 01_baseline_kagnn.py                     # KA-GNN standalone baseline
-│   ├── 02_kagnn_pgm_forward.py                  # KA-GNN → PGM forward hybrid
-│   ├── 03_pgm_kagnn_reverse.py                  # PGM → KA-GNN reverse hybrid
+├── experiments/
+│   │
+│   │   ── Experiment 1: Global Training ──
+│   ├── 01_baseline_kagnn.py                     # KA-GNN standalone (global)
+│   ├── 02_kagnn_pgm_forward.py                  # KA-GNN → PGM forward hybrid (global)
+│   ├── 03_pgm_kagnn_reverse.py                  # PGM → KA-GNN reverse hybrid (global)
 │   ├── 04_statistical_tests.py                  # Statistical comparison & analysis
-│   ├── 05_pgm_kagin_classwise.py                # PGM → KA-GNN with class-wise analysis (3-Fold CV)
-│   ├── 06_classwise_kagnn_pgm_forward_hybrid.py # KA-GNN → PGM with class-wise analysis
-│   ├── 07_classwise_kagnn.py                    # KA-GNN baseline with class-wise analysis
+│   │
+│   │   ── Experiment 2: Class-Wise Oriented Training ──
+│   ├── 05_pgm_kagin_classwise.py                # PGM → KA-GNN reverse hybrid (class-wise, 3-Fold CV)
+│   ├── 06_classwise_kagnn_pgm_forward_hybrid.py # KA-GNN → PGM forward hybrid (class-wise)
+│   ├── 07_classwise_kagnn.py                    # KA-GNN standalone (class-wise)
 │   └── pgm_kagnn_training.py                    # PGM & KA-GNN training utility functions
 │
 ├── src/
-│   ├── data/                                    # Data utilities
+│   ├── data/
 │   │   ├── __init__.py
 │   │   ├── dataset.py                           # SMRTCombinedDataset
 │   │   └── preprocessing.py                     # Feature extraction
 │   │
-│   ├── models/                                  # Neural network models
+│   ├── models/
 │   │   ├── __init__.py
 │   │   ├── base_model.py                        # BaseRTModel abstract class
 │   │   ├── kagnn.py                             # FixedBaselineKAGNN
 │   │   ├── kagnn_pgm_forward.py                 # KAGNN→PGM Forward
 │   │   └── pgm_kagnn_reverse.py                 # PGM→KAGNN Reverse
 │   │
-│   ├── evaluation/                              # Metrics & visualization
+│   ├── evaluation/
 │   │   ├── __init__.py
 │   │   ├── metrics.py                           # RTMetrics class
 │   │   └── visualization.py                     # RTVisualizer class
 │   │
-│   ├── training/                                # Training utilities
+│   ├── training/
 │   │   ├── __init__.py
 │   │   └── trainer.py                           # Unified Trainer class
 │   │
-│   └── utils/                                   # Utility functions
+│   └── utils/
 │       ├── __init__.py
 │       ├── seed.py                              # Random seed setting
 │       └── smrt_utils.py                        # SMRT-specific utilities
 │
-├── results/                                     # Output directory
-│   ├── checkpoints/                             # Saved model weights
-│   ├── metrics/                                 # JSON metrics files
-│   ├── plots/                                   # Visualization outputs
-│   └── statistical_analysis/                    # Statistical test results
+├── results/
+│   ├── checkpoints/
+│   ├── metrics/
+│   ├── plots/
+│   └── statistical_analysis/
 │
-└── .gitignore                                   # Git ignore rules
+└── .gitignore
 ```
 
 ### 3. MODEL ARCHITECTURES
+
+Three architectures are evaluated in **both** experiments:
 
 #### A. KA-GNN Baseline (Standalone)
 
 **Architecture:** KAGIN (Knowledge-Augmented Graph Isomorphism Network) + KAN (Kolmogorov-Arnold Network)
 
-**Features:**
 - ECFP4 fingerprints (1024 bits)
 - Graph molecular structure (PyTorch Geometric)
 
@@ -217,23 +227,15 @@ SDF_PATH = "data/raw/SMRT_dataset.sdf"
 
 #### Option 1: Conda (Recommended)
 ```bash
-# Create environment from yml file
 conda env create -f environment.yml
 conda activate rt-prediction
-
-# Verify installation
 python -c "import torch; import rdkit; print('PyTorch:', torch.__version__); print('RDKit:', rdkit.__version__)"
 ```
 
 #### Option 2: Pip
 ```bash
-# Install core dependencies
 pip install torch torch-geometric numpy pandas
-
-# Install RDKit (requires conda first)
 conda install -c conda-forge rdkit
-
-# Install remaining dependencies
 pip install scikit-learn xgboost optuna matplotlib seaborn scipy
 ```
 
@@ -241,44 +243,30 @@ pip install scikit-learn xgboost optuna matplotlib seaborn scipy
 
 ##  RUNNING THE MODELS
 
-### Experiment 1 — Global Training (Single Split)
-
-#### Full PGM → KA-GNN Experiment (Recommended)
+### Experiment 1 — Global Training (no class differentiation)
 
 ```bash
-python experiments/03_pgm_kagnn_reverse.py
-```
-
-#### KA-GNN → PGM Forward Experiment
-
-```bash
-python experiments/02_kagnn_pgm_forward.py
-```
-
-#### Baseline KA-GNN Only
-
-```bash
+# Model 1: KA-GNN Standalone
 python experiments/01_baseline_kagnn.py
+
+# Model 2: Forward Hybrid (KA-GNN → PGM)
+python experiments/02_kagnn_pgm_forward.py
+
+# Model 3: Reverse Hybrid (PGM → KA-GNN)
+python experiments/03_pgm_kagnn_reverse.py
 ```
 
 ### Experiment 2 — Class-Wise Oriented Training (3-Fold CV)
 
-#### PGM → KA-GNN Class-Wise
-
 ```bash
-python experiments/05_pgm_kagin_classwise.py
-```
-
-#### KA-GNN → PGM Forward Class-Wise
-
-```bash
-python experiments/06_classwise_kagnn_pgm_forward_hybrid.py
-```
-
-#### KA-GNN Baseline Class-Wise
-
-```bash
+# Model 1: KA-GNN Standalone (class-wise)
 python experiments/07_classwise_kagnn.py
+
+# Model 2: Forward Hybrid (KA-GNN → PGM, class-wise)
+python experiments/06_classwise_kagnn_pgm_forward_hybrid.py
+
+# Model 3: Reverse Hybrid (PGM → KA-GNN, class-wise, 3-Fold CV)
+python experiments/05_pgm_kagin_classwise.py
 ```
 
 ---
@@ -287,27 +275,21 @@ python experiments/07_classwise_kagnn.py
 
 ### Running Only PGM Baseline
 
-If you want to train and evaluate only the PGM ensemble (fast, ~10 minutes):
-
 ```python
 from src.models.pgm_kagnn_reverse import PGMKAGNNTrainer
 from src.data.dataset import SMRTDataLoader, SMRTDataset
 from torch.utils.data import DataLoader
 from sklearn.model_selection import train_test_split
 
-# Load data
 loader = SMRTDataLoader(csv_path, ecfp_path, sdf_path)
 df, ecfp_dict, mol_dict = loader.get_data()
 
-# Split data
 train_idx, test_idx = train_test_split(range(len(df)), test_size=0.15, random_state=42)
 train_idx, val_idx = train_test_split(train_idx, test_size=0.176, random_state=42)
 
-# Create dataloaders
 train_loader = DataLoader(SMRTDataset(df.iloc[train_idx], ecfp_dict, mol_dict),
                          batch_size=64, shuffle=True, collate_fn=loader.collate_fn)
 
-# Train only PGM (Stage 1)
 trainer = PGMKAGNNTrainer(train_loader, val_loader, test_loader, mol_dict, loader.rt_scaler)
 metrics_pgm = trainer.evaluate_pgm_only()
 print(f"PGM MedAE: {metrics_pgm['medae']:.2f}s")
@@ -315,21 +297,12 @@ print(f"PGM MedAE: {metrics_pgm['medae']:.2f}s")
 
 ### Running Only KA-GNN Model
 
-For standalone KA-GNN training:
-
 ```python
 from src.models.kagnn import FixedBaselineKAGNN
 from src.training.trainer import Trainer, create_trainer
 
-# Initialize model
-model = FixedBaselineKAGNN(
-    in_channels=1024,      # ECFP dimension
-    hidden_dim=256,
-    num_layers=3,
-    dropout=0.2
-)
+model = FixedBaselineKAGNN(in_channels=1024, hidden_dim=256, num_layers=3, dropout=0.2)
 
-# Create trainer
 trainer = create_trainer(
     model=model,
     train_loader=train_loader,
@@ -342,7 +315,6 @@ trainer = create_trainer(
     device='cuda'
 )
 
-# Train and evaluate
 trainer.train()
 metrics = trainer.evaluate()
 ```
@@ -357,7 +329,6 @@ metrics = trainer.evaluate()
 import torch
 from src.models.pgm_kagnn_reverse import PGM_KAGNN_Reverse
 
-# Load trained model
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = PGM_KAGNN_Reverse(cfg).to(device)
 model.load_state_dict(torch.load('results/checkpoints/pgm_kagnn_reverse/best_model.pt'))
@@ -372,25 +343,21 @@ from src.data.preprocessing import atom_to_indices, bond_to_indices
 import numpy as np
 
 def predict_rt(model, smiles_list, ecfp_dict, device):
-    """Predict retention times for new compounds."""
     model.eval()
     predictions = []
-
     with torch.no_grad():
         for smiles in smiles_list:
             mol = Chem.MolFromSmiles(smiles)
             atom_features = atom_to_indices(mol)
             bond_features = bond_to_indices(mol)
-            pubchem_id = get_pubchem_id(smiles)  # You need to map this
+            pubchem_id = get_pubchem_id(smiles)
             ecfp = ecfp_dict.get(pubchem_id, np.zeros(1024))
             graph_data = (atom_features, bond_features)
             ecfp_tensor = torch.tensor(ecfp, dtype=torch.float).unsqueeze(0).to(device)
             pred = model(graph_data, ecfp_tensor)
             predictions.append(pred.item())
-
     return predictions
 
-# Example usage
 smiles_list = ['CCO', 'CC(=O)O', 'c1ccccc1']
 predictions = predict_rt(model, smiles_list, ecfp_dict, device)
 print(f"Predicted RTs: {predictions}")
@@ -405,7 +372,6 @@ print(f"Predicted RTs: {predictions}")
 ```python
 import torch
 print(f"CUDA available: {torch.cuda.is_available()}")
-print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ```
 
@@ -444,7 +410,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ┌─────────────────────────────────────────────────────────────────┐
 │                        DATA PIPELINE                             │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
 │  Raw Data (CSV + ECFP + SDF)                                    │
 │         ↓                                                       │
 │  SMRTDataLoader                                                 │
@@ -458,11 +423,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 │  ├── ECFP retrieval                                             │
 │  └── RT normalization                                           │
 │         ↓                                                       │
-│  DataLoader (batch processing)                                  │
-│         ↓                                                       │
-│  Model Input                                                    │
-│  └── (graph, ecfp, rt, ids)                                     │
-│                                                                 │
+│  DataLoader → Model Input (graph, ecfp, rt, ids)               │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -474,7 +435,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ┌─────────────────────────────────────────────────────────────────┐
 │                      TRAINING PIPELINE                           │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │ STAGE 1: BACKBONE TRAINING                               │   │
 │  │ • Optimizer: AdamW (lr=3e-4, weight_decay=1e-5)          │   │
@@ -484,7 +444,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 │  └─────────────────────────────────────────────────────────┘   │
 │                              ↓                                   │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │ STAGE 2: RESIDUAL CORRECTION (for hybrid models)         │   │
+│  │ STAGE 2: RESIDUAL CORRECTION (hybrid models only)        │   │
 │  │ • Extract descriptors (32 features)                      │   │
 │  │ • Train XGBoost + Bayesian Ridge ensemble                │   │
 │  │ • Optional: Optuna hyperparameter optimization           │   │
@@ -494,9 +454,8 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 │  │ EVALUATION                                               │   │
 │  │ • Compute metrics (MedAE, MAE, RMSE, R², etc.)           │   │
 │  │ • Statistical significance tests                         │   │
-│  │ • Visualization (scatter, histogram, residuals, etc.)    │   │
+│  │ • Visualization                                          │   │
 │  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -514,73 +473,115 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 ## RESULTS
 
-> The two experiments differ in their training protocol. **Experiment 1** trains each model globally on a single train/test split (n = 11,994 test). **Experiment 2** trains with a class-wise oriented strategy using 3-fold cross-validation, allowing evaluation of generalisation across chemical superclasses.
+The same three architectures are compared under two training regimes:
+
+| | Experiment 1 | Experiment 2 |
+|-|-------------|-------------|
+| **Training strategy** | Global (no class distinction) | Class-wise oriented |
+| **Evaluation** | Single train/test split | 3-Fold Cross-Validation |
+| **Test set size** | n = 11,994 | ~26,652 per fold |
+| **Scripts** | `01_`, `02_`, `03_` | `05_`, `06_`, `07_` |
 
 ---
 
 ## EXPERIMENT 1 — Global Training (Single Split)
 
-Models are trained on the full dataset without class stratification. Evaluated on a held-out test set (n = 11,994 from 79,955 total).
+Models are trained on the full SMRT dataset without class differentiation.
+Test set: **n = 11,994** (from 79,955 total molecules, split 70/15/15).
 
-### Dataset Split
-
-| Split | Size |
-|-------|------|
-| Train | 55,967 |
-| Test | 11,994 |
-| Total (with METLIN baseline ref.) | 80,038 |
-
-### Group 1 — Baseline (SMRT METLIN)
-
-Reference only; not trained in this repository.
-
-| MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
-|-----------|---------|----------|----|---------|----------|---------|---------|---------|
-| 57 | — | — | — | — | — | — | 21.69% | 55.26% |
-
-### Group 2 — KA-GNN Only
-
-Standalone KA-GNN trained on the full training split.
+### Model 1 — KA-GNN Standalone
 
 | n (test) | MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
 |----------|-----------|---------|----------|----|---------|----------|---------|---------|---------|
 | 11,994 | 26.14 | 48.43 | 90.68 | 0.8270 | 0.9061 | 0.9281 | 21.69% | 55.26% | 79.39% |
 
-### Group 3 — Forward Hybrid (KA-GNN → PGM)
-
-KA-GNN trained first; PGM corrects residuals.
+### Model 2 — Forward Hybrid (KA-GNN → PGM)
 
 | n (test) | MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
 |----------|-----------|---------|----------|----|---------|----------|---------|---------|---------|
 | 11,994 | 20.45 | 36.99 | 69.22 | 0.8336 | 0.9135 | 0.9329 | 26.95% | 65.07% | 85.76% |
 
-### Group 4 — Reverse Hybrid (PGM → KA-GNN)
-
-PGM trained first; KA-GNN corrects residuals.
+### Model 3 — Reverse Hybrid (PGM → KA-GNN)
 
 | n (test) | MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
 |----------|-----------|---------|----------|----|---------|----------|---------|---------|---------|
 | 11,994 | 22.19 | 39.57 | 71.94 | 0.8202 | 0.9004 | 0.9257 | 25.40% | 61.70% | 84.18% |
 
-> **Summary:** The Forward Hybrid achieves the best global MedAE (20.45 s). All three trained models outperform the SMRT METLIN baseline.
+### Experiment 1 — Summary
+
+| Model | MedAE (s) | MAE (s) | RMSE (s) | R² | % ≤ 30s |
+|-------|-----------|---------|----------|----|---------|
+| Baseline (SMRT METLIN) | 57 | — | — | — | 21.69% |
+| KA-GNN Standalone | 26.14 | 48.43 | 90.68 | 0.8270 | 55.26% |
+| Forward Hybrid (KA-GNN → PGM) | **20.45** | **36.99** | **69.22** | **0.8336** | **65.07%** |
+| Reverse Hybrid (PGM → KA-GNN) | 22.19 | 39.57 | 71.94 | 0.8202 | 61.70% |
+
+> The Forward Hybrid achieves the best global MedAE. All three trained models outperform the SMRT METLIN baseline.
 
 ---
 
 ## EXPERIMENT 2 — Class-Wise Oriented Training (3-Fold CV)
 
-Models are trained with a class-aware strategy. Evaluation uses **3-fold cross-validation** to ensure robust estimates. Results are reported as mean ± std across folds.
+Models are trained taking chemical superclasses into account. Evaluation uses **3-fold cross-validation**.
 
-Global metrics over the SMRT test set can be misleading due to severe class imbalance: **Organoheterocyclics account for ~98.3%** of the test set. Experiment 2 decomposes performance across chemical superclasses.
+Global metrics over the SMRT dataset can be misleading due to severe class imbalance: **Organoheterocyclics account for ~98.3%** of the data, making global MedAE essentially a majority-class metric. Experiment 2 decomposes performance across chemical superclasses.
 
-### Dataset Split (per fold, averaged)
+### Dataset Class Distribution (SMRT, n = 79,955)
 
-| Split | Size (mean) |
-|-------|-------------|
-| Test per fold | ~26,652 |
+| Class | n | Median RT (s) | Tendency |
+|-------|---|--------------|----------|
+| Organoheterocyclics | 78,543 | 776 | Near global median |
+| Other (unclassified) | 699 | 619 | Earlier elution |
+| Organic Acids & AA | 470 | 597 | Earlier elution |
+| Lipids | 188 | 741 | Earlier elution |
+| Benzenoids | 24 | 709 | Earlier elution |
+| Aliphatic Organics | 18 | 593 | Earlier elution |
+| Carbohydrates | 13 | 93 | Extreme early elution |
 
-### Group 5 — Reverse Hybrid (PGM → KA-GNN), 3-Fold CV
+---
 
-#### PGM Stage Only (Stage 1 baseline)
+### Model 1 — KA-GNN Standalone (Class-Wise)
+Evaluated on the test split (n = 11,994).
+
+| n (test) | MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
+|----------|-----------|---------|----------|----|---------|----------|---------|---------|---------|
+| 11,994 | 25.93 | 46.91 | 86.94 | 0.8226 | 0.9075 | 0.9290 | 21.47% | 55.72% | 79.73% |
+
+---
+
+### Model 2 — Forward Hybrid (KA-GNN → PGM, Class-Wise)
+Evaluated on the test split (n = 11,994).
+
+| n (test) | MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
+|----------|-----------|---------|----------|----|---------|----------|---------|---------|---------|
+| 11,994 | 24.60 | 44.59 | 84.11 | 0.8340 | 0.9134 | 0.9330 | 23.07% | 57.37% | 81.35% |
+
+**Statistical significance vs. KA-GNN Baseline (class-wise):**
+
+| t-stat | p (t-test) | w-stat | p (Wilcoxon) |
+|--------|------------|--------|--------------|
+| 9.67 | 4.76e-22 | 31,965,816 | 5.01e-26 |
+
+#### Class-Wise MedAE: KA-GNN vs. Forward Hybrid
+
+| Class | n | KA-GNN MedAE | Forward Hybrid MedAE | ΔMedAE |
+|-------|---|-------------|---------------------|--------|
+| Organoheterocyclics | 11,791 | 25.11 s | 24.60 s | +0.51 s |
+| Other (unclassified) | 100 | 25.59 s | 15.97 s | **+9.62 s** |
+| Organic Acids & AA | 70 | 31.65 s | 33.52 s | −1.87 s |
+| Lipids | 26 | 18.07 s | 27.77 s | **−9.70 s** |
+| **Global** | **11,994** | **26.14 s** | **20.45 s** | +5.69 s |
+
+**Key findings:**
+- The Forward Hybrid improves "Other" compounds substantially (+37.6%) via PGM physicochemical descriptors, but **degrades Lipids** (−53.7%) and **Organic Acids** (−5.9%). Hybrid gains are selective, not universal.
+- Standalone KA-GNN shows no majority-class over-optimisation; Lipids (n = 26) achieve the best class-wise MedAE (18.07 s).
+
+---
+
+### Model 3 — Reverse Hybrid (PGM → KA-GNN, Class-Wise, 3-Fold CV)
+Results reported as **mean ± std** across 3 folds.
+
+#### Stage 1 — PGM Only
 
 | Metric | Mean | Std |
 |--------|------|-----|
@@ -595,7 +596,9 @@ Global metrics over the SMRT test set can be misleading due to severe class imba
 | % ≤ 30s | 39.39% | ±0.65 |
 | % ≤ 60s | 66.07% | ±0.49 |
 
-#### Final Hybrid (PGM + KA-GNN Residual Correction)
+---
+
+#### Final — PGM + KA-GNN Residual Correction
 
 | Metric | Mean | Std |
 |--------|------|-----|
@@ -610,7 +613,7 @@ Global metrics over the SMRT test set can be misleading due to severe class imba
 | % ≤ 30s | 51.11% | ±1.69 |
 | % ≤ 60s | 76.25% | ±1.05 |
 
-**Statistical significance (paired t-test & Wilcoxon per fold):**
+**Statistical significance — KA-GNN correction vs. PGM alone (per fold):**
 
 | Fold | t-stat | p (t-test) | w-stat | p (Wilcoxon) |
 |------|--------|------------|--------|--------------|
@@ -620,52 +623,7 @@ Global metrics over the SMRT test set can be misleading due to severe class imba
 
 > KA-GNN residual correction significantly improves PGM predictions across all 3 folds (all p ≈ 0).
 
----
-
-### Group 6 — Forward Hybrid (KA-GNN → PGM) & KA-GNN Baseline, Class-Wise
-
-Evaluated on the test split (n = 11,994). These results come from the class-wise training scripts.
-
-#### KA-GNN Baseline (Class-Wise Run)
-
-| n (test) | MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
-|----------|-----------|---------|----------|----|---------|----------|---------|---------|---------|
-| 11,994 | 25.93 | 46.91 | 86.94 | 0.8226 | 0.9075 | 0.9290 | 21.47% | 55.72% | 79.73% |
-
-#### Forward Hybrid (KA-GNN → PGM, Class-Wise Run)
-
-| n (test) | MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
-|----------|-----------|---------|----------|----|---------|----------|---------|---------|---------|
-| 11,994 | 24.60 | 44.59 | 84.11 | 0.8340 | 0.9134 | 0.9330 | 23.07% | 57.37% | 81.35% |
-
-**Statistical significance (Forward Hybrid vs. KA-GNN Baseline):**
-
-| t-stat | p (t-test) | w-stat | p (Wilcoxon) |
-|--------|------------|--------|--------------|
-| 9.67 | 4.76e-22 | 31,965,816 | 5.01e-26 |
-
-> The Forward Hybrid significantly outperforms the standalone KA-GNN baseline in the class-wise experiment (p ≈ 0).
-
----
-
-### Class-Wise MedAE: KA-GNN vs. Forward Hybrid (Experiment 2, Test Split n = 11,994)
-
-| Class | n | KA-GNN MedAE | Forward Hybrid MedAE | ΔMedAE |
-|-------|---|-------------|---------------------|--------|
-| Organoheterocyclics | 11,791 | 25.11 s | 24.60 s | +0.51 s |
-| Other (unclassified) | 100 | 25.59 s | 15.97 s | **+9.62 s** |
-| Organic Acids & AA | 70 | 31.65 s | 33.52 s | −1.87 s |
-| Lipids | 26 | 18.07 s | 27.77 s | **−9.70 s** |
-| **Global** | **11,994** | **26.14 s** | **20.45 s** | +5.69 s |
-
-**Key findings:**
-- The **Forward Hybrid** improves "Other" compounds substantially (+37.6%) via PGM physicochemical descriptors (LogP, TPSA, MW), but **degrades Lipids** (−53.7%) and **Organic Acids** (−5.9%).
-- **Standalone KA-GNN** shows no majority-class over-optimisation; Lipids (n = 26) achieve the best class-wise MedAE (18.07 s).
-- Global improvement (+5.69 s) almost entirely reflects gains on Organoheterocyclics; degradations on minority classes are statistically invisible in aggregate metrics.
-
----
-
-### Reverse Hybrid (PGM → KA-GNN): 3-Fold CV Class-Wise Results (Experiment 2)
+#### Class-Wise MedAE: PGM Only vs. Reverse Hybrid
 
 | Class | PGM MedAE | Hybrid MedAE | ΔMedAE |
 |-------|-----------|-------------|--------|
@@ -682,10 +640,10 @@ Evaluated on the test split (n = 11,994). These results come from the class-wise
 
 ---
 
-### Three-Architecture Summary (Experiment 2)
+### Experiment 2 — Three-Architecture Comparison (Class-Wise MedAE)
 
-| Class | KA-GNN Baseline | Forward Hybrid | Reverse Hybrid (CV) |
-|-------|-----------------|----------------|---------------------|
+| Class | KA-GNN | Forward Hybrid | Reverse Hybrid (CV) |
+|-------|--------|----------------|---------------------|
 | Organoheterocyclics | 25.11 s | **24.60 s ↑** | 28.92 s |
 | Other | 25.59 s | **15.97 s ↑** | 45.01 s |
 | Organic Acids & AA | **31.65 s ↑** | 33.52 s ↓ | 46.21 s |
@@ -701,16 +659,13 @@ Evaluated on the test split (n = 11,994). These results come from the class-wise
 ## USAGE EXAMPLE
 
 ```python
-# Quick start example
 from src.data.dataset import SMRTCombinedDataset, collate_fn
 from src.models.pgm_kagnn_reverse import PGM_KAGNN_Reverse
 from torch.utils.data import DataLoader
 
-# Load data
 train_ds = SMRTCombinedDataset(cfg, 'train')
 train_loader = DataLoader(train_ds, batch_size=64, shuffle=True, collate_fn=collate_fn)
 
-# Initialize model
 model = PGM_KAGNN_Reverse(cfg).to(device)
 model.set_mol_dict(train_ds.mol_dict)
 
