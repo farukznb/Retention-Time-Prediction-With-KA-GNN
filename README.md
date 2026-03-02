@@ -83,21 +83,18 @@ Retention-Time-Prediction-With-KA-GNN/
 **Features:**
 - ECFP4 fingerprints (1024 bits)
 - Graph molecular structure (PyTorch Geometric)
-- Performance: MedAE ~27s, R² ~0.817
 
 #### B. Forward Hybrid (KA-GNN → PGM)
 
 - **Stage 1:** KA-GNN backbone trained on RT prediction
 - **Stage 2:** PGM ensemble (XGBoost + Bayesian Ridge) learns residual corrections
 - **Inference:** `final = KAGNN(pred) + PGM(correction)`
-- **Performance:** MedAE ~20.56s, MAE ~39.57s
 
 #### C. Reverse Hybrid (PGM → KA-GNN)
 
 - **Stage 1:** PGM ensemble trained on physicochemical descriptors
 - **Stage 2:** KA-GNN predicts residual corrections
 - **Inference:** `final = PGM(pred) + KA-GNN(correction)`
-- **Performance:** MedAE ~22.19s, MAE ~39.57s
 
 ### 4. KEY COMPONENTS
 
@@ -244,39 +241,45 @@ pip install scikit-learn xgboost optuna matplotlib seaborn scipy
 
 ##  RUNNING THE MODELS
 
-### Full PGM → KA-GNN Experiment (Recommended)
+### Experiment 1 — Global Training (Single Split)
 
-This runs the complete reverse hybrid pipeline with both PGM baseline and KA-GNN residual learning:
+#### Full PGM → KA-GNN Experiment (Recommended)
 
 ```bash
 python experiments/03_pgm_kagnn_reverse.py
 ```
 
-**What happens:**
-1. Loads and preprocesses the SMRT dataset
-2. Trains PGM ensemble (XGBoost + Bayesian Ridge) as Stage 1
-3. Trains KA-GNN for residual correction as Stage 2
-4. Evaluates on test set with comprehensive metrics
-5. Generates visualizations and saves results
-
-### KA-GNN → PGM Forward Experiment
+#### KA-GNN → PGM Forward Experiment
 
 ```bash
 python experiments/02_kagnn_pgm_forward.py
 ```
 
-**What happens:**
-1. Trains KA-GNN backbone first
-2. PGM corrects the residuals from KA-GNN
-3. Best for capturing global trends first
-
-### Baseline KA-GNN Only
+#### Baseline KA-GNN Only
 
 ```bash
 python experiments/01_baseline_kagnn.py
 ```
 
-Runs standalone KA-GNN without any hybrid correction.
+### Experiment 2 — Class-Wise Oriented Training (3-Fold CV)
+
+#### PGM → KA-GNN Class-Wise
+
+```bash
+python experiments/05_pgm_kagin_classwise.py
+```
+
+#### KA-GNN → PGM Forward Class-Wise
+
+```bash
+python experiments/06_classwise_kagnn_pgm_forward_hybrid.py
+```
+
+#### KA-GNN Baseline Class-Wise
+
+```bash
+python experiments/07_classwise_kagnn.py
+```
 
 ---
 
@@ -301,7 +304,7 @@ train_idx, test_idx = train_test_split(range(len(df)), test_size=0.15, random_st
 train_idx, val_idx = train_test_split(train_idx, test_size=0.176, random_state=42)
 
 # Create dataloaders
-train_loader = DataLoader(SMRTDataset(df.iloc[train_idx], ecfp_dict, mol_dict), 
+train_loader = DataLoader(SMRTDataset(df.iloc[train_idx], ecfp_dict, mol_dict),
                          batch_size=64, shuffle=True, collate_fn=loader.collate_fn)
 
 # Train only PGM (Stage 1)
@@ -372,48 +375,25 @@ def predict_rt(model, smiles_list, ecfp_dict, device):
     """Predict retention times for new compounds."""
     model.eval()
     predictions = []
-    
+
     with torch.no_grad():
         for smiles in smiles_list:
-            # Convert SMILES to molecule
             mol = Chem.MolFromSmiles(smiles)
-            
-            # Create graph representation
             atom_features = atom_to_indices(mol)
             bond_features = bond_to_indices(mol)
-            
-            # Get ECFP fingerprint
             pubchem_id = get_pubchem_id(smiles)  # You need to map this
             ecfp = ecfp_dict.get(pubchem_id, np.zeros(1024))
-            
-            # Prepare input
             graph_data = (atom_features, bond_features)
             ecfp_tensor = torch.tensor(ecfp, dtype=torch.float).unsqueeze(0).to(device)
-            
-            # Predict
             pred = model(graph_data, ecfp_tensor)
             predictions.append(pred.item())
-    
+
     return predictions
 
 # Example usage
 smiles_list = ['CCO', 'CC(=O)O', 'c1ccccc1']
 predictions = predict_rt(model, smiles_list, ecfp_dict, device)
 print(f"Predicted RTs: {predictions}")
-```
-
-### Using Pre-computed Descriptors
-
-```python
-from src.models.pgm_kagnn_reverse import PGMEnsemble
-
-# Initialize PGM ensemble
-pgm = PGMEnsemble()
-pgm.load('results/checkpoints/pgm_ensemble.pkl')
-
-# Predict with molecular descriptors
-descriptors = np.array([[32.0, 1.5, 45.0, ...]])  # 32 features
-rt_prediction = pgm.predict(descriptors)
 ```
 
 ---
@@ -423,12 +403,9 @@ rt_prediction = pgm.predict(descriptors)
 ### GPU Usage
 
 ```python
-# Check GPU availability
 import torch
 print(f"CUDA available: {torch.cuda.is_available()}")
 print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
-
-# Set device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 ```
 
@@ -442,11 +419,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 | GPU (16GB+ VRAM) | 64-128 |
 | CPU | 16-32 |
 
-```python
-# In your config
-BATCH_SIZE = 64  # Adjust based on your GPU memory
-```
-
 ### Training Times
 
 | Stage | Time (Approximate) |
@@ -455,27 +427,6 @@ BATCH_SIZE = 64  # Adjust based on your GPU memory
 | KA-GNN Training (1 fold) | 5-15 minutes |
 | KA-GNN Training (3-fold CV) | 1-2 hours |
 | Full Pipeline | 2-3 hours |
-
-### Early Stopping
-
-The models use early stopping to prevent overfitting:
-
-```python
-# Configuration
-EARLY_STOPPING_PATIENCE = 20  # Number of epochs without improvement
-MIN_DELTA = 0.001  # Minimum improvement threshold
-
-# Monitor validation loss
-if val_loss < best_loss - MIN_DELTA:
-    best_loss = val_loss
-    patience_counter = 0
-    save_checkpoint()
-else:
-    patience_counter += 1
-    if patience_counter >= EARLY_STOPPING_PATIENCE:
-        print("Early stopping triggered!")
-        break
-```
 
 ### Memory Requirements
 
@@ -561,54 +512,160 @@ else:
 
 ---
 
-## PERFORMANCE SUMMARY
+## RESULTS
 
-### Global Metrics (Experiment 1)
-
-| Model | MedAE (s) | MAE (s) | RMSE (s) | R² | % ≤ 30s |
-|-------|-----------|---------|----------|-----|---------|
-| KA-GNN Only | 26.14 | 48.43 | 90.68 | 0.807 | 55.26% |
-| Forward Hybrid (KA-GNN → PGM) | 20.45 | 36.99 | 69.22 | 0.834 | 65.07% |
-| Reverse Hybrid (PGM → KA-GNN, 3-fold CV) | 29.15 | 51.46 | 90.50 | 0.808 | 51.12% |
-
-> The Forward Hybrid achieves the lowest global MedAE. The Reverse Hybrid starts from a weaker PGM baseline (~40 s) and reduces it by ~10 s, a larger absolute gain.
+> The two experiments differ in their training protocol. **Experiment 1** trains each model globally on a single train/test split (n = 11,994 test). **Experiment 2** trains with a class-wise oriented strategy using 3-fold cross-validation, allowing evaluation of generalisation across chemical superclasses.
 
 ---
 
-## EXPERIMENT 2: CLASS-WISE PERFORMANCE ANALYSIS
+## EXPERIMENT 1 — Global Training (Single Split)
 
-Global metrics over the SMRT test set (n = 11,994) can be misleading due to severe class imbalance: **Organoheterocyclics account for 98.3%** of the test set, making global MedAE essentially a majority-class metric. Experiment 2 decomposes performance across chemical superclasses.
+Models are trained on the full dataset without class stratification. Evaluated on a held-out test set (n = 11,994 from 79,955 total).
 
-### Dataset Class Distribution (SMRT, n = 79,975)
+### Dataset Split
 
-| Class | n | Median RT (s) | Tendency |
-|-------|---|--------------|----------|
-| Organoheterocyclics | 78,543 | 776 | Near global median |
-| Other (unclassified) | 699 | 619 | Earlier elution |
-| Organic Acids & AA | 470 | 597 | Earlier elution |
-| Lipids | 188 | 741 | Earlier elution |
-| Benzenoids | 24 | 709 | Earlier elution |
-| Aliphatic Organics | 18 | 593 | Earlier elution |
-| Carbohydrates | 13 | 93 | Extreme early elution |
+| Split | Size |
+|-------|------|
+| Train | 55,967 |
+| Test | 11,994 |
+| Total (with METLIN baseline ref.) | 80,038 |
 
-> Classes with n < 10 in the test split (Carbohydrates, Benzenoids, Aliphatic Organics) are excluded from per-class error comparisons due to high estimation variance.
+### Group 1 — Baseline (SMRT METLIN)
 
-### Class-Wise MedAE: Standalone KA-GNN vs. Forward Hybrid (Test Split, n = 11,994)
+Reference only; not trained in this repository.
+
+| MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
+|-----------|---------|----------|----|---------|----------|---------|---------|---------|
+| 57 | — | — | — | — | — | — | 21.69% | 55.26% |
+
+### Group 2 — KA-GNN Only
+
+Standalone KA-GNN trained on the full training split.
+
+| n (test) | MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
+|----------|-----------|---------|----------|----|---------|----------|---------|---------|---------|
+| 11,994 | 26.14 | 48.43 | 90.68 | 0.8270 | 0.9061 | 0.9281 | 21.69% | 55.26% | 79.39% |
+
+### Group 3 — Forward Hybrid (KA-GNN → PGM)
+
+KA-GNN trained first; PGM corrects residuals.
+
+| n (test) | MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
+|----------|-----------|---------|----------|----|---------|----------|---------|---------|---------|
+| 11,994 | 20.45 | 36.99 | 69.22 | 0.8336 | 0.9135 | 0.9329 | 26.95% | 65.07% | 85.76% |
+
+### Group 4 — Reverse Hybrid (PGM → KA-GNN)
+
+PGM trained first; KA-GNN corrects residuals.
+
+| n (test) | MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
+|----------|-----------|---------|----------|----|---------|----------|---------|---------|---------|
+| 11,994 | 22.19 | 39.57 | 71.94 | 0.8202 | 0.9004 | 0.9257 | 25.40% | 61.70% | 84.18% |
+
+> **Summary:** The Forward Hybrid achieves the best global MedAE (20.45 s). All three trained models outperform the SMRT METLIN baseline.
+
+---
+
+## EXPERIMENT 2 — Class-Wise Oriented Training (3-Fold CV)
+
+Models are trained with a class-aware strategy. Evaluation uses **3-fold cross-validation** to ensure robust estimates. Results are reported as mean ± std across folds.
+
+Global metrics over the SMRT test set can be misleading due to severe class imbalance: **Organoheterocyclics account for ~98.3%** of the test set. Experiment 2 decomposes performance across chemical superclasses.
+
+### Dataset Split (per fold, averaged)
+
+| Split | Size (mean) |
+|-------|-------------|
+| Test per fold | ~26,652 |
+
+### Group 5 — Reverse Hybrid (PGM → KA-GNN), 3-Fold CV
+
+#### PGM Stage Only (Stage 1 baseline)
+
+| Metric | Mean | Std |
+|--------|------|-----|
+| n (test) | 26,652 | ±0.47 |
+| MedAE (s) | 40.05 | ±0.71 |
+| MAE (s) | 62.17 | ±0.70 |
+| RMSE (s) | 96.26 | ±0.80 |
+| R² | 0.7830 | ±0.0023 |
+| Pearson | 0.8859 | ±0.0014 |
+| Spearman | 0.9075 | ±0.0011 |
+| % ≤ 10s | 14.06% | ±0.22 |
+| % ≤ 30s | 39.39% | ±0.65 |
+| % ≤ 60s | 66.07% | ±0.49 |
+
+#### Final Hybrid (PGM + KA-GNN Residual Correction)
+
+| Metric | Mean | Std |
+|--------|------|-----|
+| n (test) | 26,652 | ±0.47 |
+| MedAE (s) | 29.12 | ±1.29 |
+| MAE (s) | 51.32 | ±1.34 |
+| RMSE (s) | 89.92 | ±0.68 |
+| R² | 0.8107 | ±0.0017 |
+| Pearson | 0.9006 | ±0.0008 |
+| Spearman | 0.9243 | ±0.0008 |
+| % ≤ 10s | 19.36% | ±0.96 |
+| % ≤ 30s | 51.11% | ±1.69 |
+| % ≤ 60s | 76.25% | ±1.05 |
+
+**Statistical significance (paired t-test & Wilcoxon per fold):**
+
+| Fold | t-stat | p (t-test) | w-stat | p (Wilcoxon) |
+|------|--------|------------|--------|--------------|
+| 1 | 44.04 | 0.0 | 111,923,954 | 0.0 |
+| 2 | 37.76 | 5.77e-304 | 122,264,911 | 0.0 |
+| 3 | 42.73 | 0.0 | 114,861,441 | 0.0 |
+
+> KA-GNN residual correction significantly improves PGM predictions across all 3 folds (all p ≈ 0).
+
+---
+
+### Group 6 — Forward Hybrid (KA-GNN → PGM) & KA-GNN Baseline, Class-Wise
+
+Evaluated on the test split (n = 11,994). These results come from the class-wise training scripts.
+
+#### KA-GNN Baseline (Class-Wise Run)
+
+| n (test) | MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
+|----------|-----------|---------|----------|----|---------|----------|---------|---------|---------|
+| 11,994 | 25.93 | 46.91 | 86.94 | 0.8226 | 0.9075 | 0.9290 | 21.47% | 55.72% | 79.73% |
+
+#### Forward Hybrid (KA-GNN → PGM, Class-Wise Run)
+
+| n (test) | MedAE (s) | MAE (s) | RMSE (s) | R² | Pearson | Spearman | % ≤ 10s | % ≤ 30s | % ≤ 60s |
+|----------|-----------|---------|----------|----|---------|----------|---------|---------|---------|
+| 11,994 | 24.60 | 44.59 | 84.11 | 0.8340 | 0.9134 | 0.9330 | 23.07% | 57.37% | 81.35% |
+
+**Statistical significance (Forward Hybrid vs. KA-GNN Baseline):**
+
+| t-stat | p (t-test) | w-stat | p (Wilcoxon) |
+|--------|------------|--------|--------------|
+| 9.67 | 4.76e-22 | 31,965,816 | 5.01e-26 |
+
+> The Forward Hybrid significantly outperforms the standalone KA-GNN baseline in the class-wise experiment (p ≈ 0).
+
+---
+
+### Class-Wise MedAE: KA-GNN vs. Forward Hybrid (Experiment 2, Test Split n = 11,994)
 
 | Class | n | KA-GNN MedAE | Forward Hybrid MedAE | ΔMedAE |
 |-------|---|-------------|---------------------|--------|
 | Organoheterocyclics | 11,791 | 25.11 s | 24.60 s | +0.51 s |
-| Other (unclassified) | 100 | 25.59 s | 15.97 s | **+9.62 s ** |
-| Organic Acids & AA | 70 | 31.65 s | 33.52 s | −1.87 s  |
-| Lipids | 26 | 18.07 s | 27.77 s | **−9.70 s ** |
-| **Global** | 11,994 | 26.14 s | 20.45 s | +5.69 s |
+| Other (unclassified) | 100 | 25.59 s | 15.97 s | **+9.62 s** |
+| Organic Acids & AA | 70 | 31.65 s | 33.52 s | −1.87 s |
+| Lipids | 26 | 18.07 s | 27.77 s | **−9.70 s** |
+| **Global** | **11,994** | **26.14 s** | **20.45 s** | +5.69 s |
 
 **Key findings:**
-- **Forward Hybrid** improves "Other" compounds substantially (+37.6%) via PGM physicochemical descriptors (LogP, TPSA, MW), but **degrades Lipids** (−53.7%) and **Organic Acids** (−5.9%). Hybrid gains are selective, not universal.
-- **Standalone KA-GNN** shows no majority-class over-optimisation; Lipids (n = 26) achieve the best class-wise MedAE (18.07 s) due to RT overlap with Organoheterocyclics.
-- Global improvement (+5.69 s) almost entirely reflects gains on Organoheterocyclics; degradations on Lipids and Organic Acids are statistically invisible in aggregate metrics.
+- The **Forward Hybrid** improves "Other" compounds substantially (+37.6%) via PGM physicochemical descriptors (LogP, TPSA, MW), but **degrades Lipids** (−53.7%) and **Organic Acids** (−5.9%).
+- **Standalone KA-GNN** shows no majority-class over-optimisation; Lipids (n = 26) achieve the best class-wise MedAE (18.07 s).
+- Global improvement (+5.69 s) almost entirely reflects gains on Organoheterocyclics; degradations on minority classes are statistically invisible in aggregate metrics.
 
-### Reverse Hybrid (PGM → KA-GNN): 3-Fold Cross-Validation Class-Wise Results
+---
+
+### Reverse Hybrid (PGM → KA-GNN): 3-Fold CV Class-Wise Results (Experiment 2)
 
 | Class | PGM MedAE | Hybrid MedAE | ΔMedAE |
 |-------|-----------|-------------|--------|
@@ -619,14 +676,16 @@ Global metrics over the SMRT test set (n = 11,994) can be misleading due to seve
 | Benzenoids | 94.21 s | 88.06 s | +6.15 s |
 | Aliphatic Organics | 158.79 s | 110.55 s | +48.24 s |
 | Carbohydrates | 235.85 s | 142.53 s | +93.32 s |
-| **Global** | 39.74 s | 29.15 s | +10.59 s |
+| **Global** | **39.74 s** | **29.15 s** | +10.59 s |
 
-> The Reverse Hybrid improves **all seven chemical classes** in aggregate. The coarse-to-fine ordering (PGM → KA-GNN) creates large, correctable residuals for every class, avoiding the selective failure modes of the Forward Hybrid.
+> The Reverse Hybrid improves **all seven chemical classes**. The coarse-to-fine ordering (PGM → KA-GNN) creates large, correctable residuals for every class, avoiding the selective failure modes of the Forward Hybrid.
 
-### Three-Architecture Summary
+---
 
-| Class | Standalone KA-GNN | Forward Hybrid | Reverse Hybrid (CV) |
-|-------|-------------------|----------------|---------------------|
+### Three-Architecture Summary (Experiment 2)
+
+| Class | KA-GNN Baseline | Forward Hybrid | Reverse Hybrid (CV) |
+|-------|-----------------|----------------|---------------------|
 | Organoheterocyclics | 25.11 s | **24.60 s ↑** | 28.92 s |
 | Other | 25.59 s | **15.97 s ↑** | 45.01 s |
 | Organic Acids & AA | **31.65 s ↑** | 33.52 s ↓ | 46.21 s |
