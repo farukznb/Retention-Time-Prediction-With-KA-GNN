@@ -71,7 +71,7 @@ torch.manual_seed(cfg.seed)
 np.random.seed(cfg.seed)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-print(f"✓ Configuration set")
+print(f" Configuration set")
 print(f"  Device: {device}")
 print(f"  Output directory: {cfg.output_dir}")
 
@@ -146,7 +146,7 @@ def bond_to_indices(bond):
         conj_list.index(bond.GetIsConjugated())
     ]
 
-print("✓ Feature extraction functions defined")
+print(" Feature extraction functions defined")
 
 # ============================================================================
 # CELL 4: DATASET
@@ -243,7 +243,7 @@ def collate_fn(batch):
     batch_graph = Batch.from_data_list(graphs)
     return batch_graph, torch.stack(ecfps), torch.stack(rts)
 
-print("✓ Dataset class defined")
+print(" Dataset class defined")
 
 # ============================================================================
 # CELL 5: LOAD DATA
@@ -257,7 +257,7 @@ train_loader = DataLoader(train_ds, cfg.batch_size, shuffle=True, collate_fn=col
 val_loader = DataLoader(val_ds, cfg.batch_size, shuffle=False, collate_fn=collate_fn)
 test_loader = DataLoader(test_ds, cfg.batch_size, shuffle=False, collate_fn=collate_fn)
 
-print(f"\n✓ Data loaded successfully")
+print(f"\n Data loaded successfully")
 print(f"  Train: {len(train_ds)} samples")
 print(f"  Val:   {len(val_ds)} samples")
 print(f"  Test:  {len(test_ds)} samples")
@@ -289,7 +289,7 @@ optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.we
 criterion = nn.SmoothL1Loss()
 
 total_params = sum(p.numel() for p in model.parameters())
-print(f"\n✓ Model initialized")
+print(f"\n Model initialized")
 print(f"  Total parameters: {total_params:,}")
 
 # ============================================================================
@@ -350,7 +350,7 @@ for epoch in range(cfg.epochs):
             break
 
 training_time = time.time() - start_time
-print(f"\n✓ Training completed in {training_time:.2f}s ({training_time/60:.2f} min)")
+print(f"\n Training completed in {training_time:.2f}s ({training_time/60:.2f} min)")
 
 # Load best model
 model.load_state_dict(torch.load(cfg.checkpoint_path, map_location=device))
@@ -404,7 +404,7 @@ def perform_statistical_tests(y_true, y_pred_current, y_pred_baseline=None):
         
     return results
 
-print("✓ Metrics functions defined")
+print(" Metrics functions defined")
 
 # ============================================================================
 # CELL 9: EVALUATION
@@ -450,7 +450,7 @@ output_data = {
 with open(cfg.metrics_path, 'w') as f:
     json.dump(output_data, f, indent=2)
 
-print(f"\n✓ Metrics saved to {cfg.metrics_path}")
+print(f"\n Metrics saved to {cfg.metrics_path}")
 
 # Print results
 print("\n" + "="*80)
@@ -478,7 +478,7 @@ print("="*80)
 # ============================================================================
 # CELL 10: COMPREHENSIVE VISUALIZATION (PART 1)
 # ============================================================================
-print("\nGenerating comprehensive visualization...")
+print("\n Generating comprehensive visualization...")
 
 abs_errors = np.abs(y_true - y_pred)
 errors = y_pred - y_true
@@ -682,11 +682,11 @@ ax12.axis('off')
 
 improvements = []
 if metrics['MedAE'] < best_kagnn['MedAE']:
-    improvements.append(f"✓ MedAE improved by {best_kagnn['MedAE']-metrics['MedAE']:.2f}s")
+    improvements.append(f" MedAE improved by {best_kagnn['MedAE']-metrics['MedAE']:.2f}s")
 if metrics['Pearson'] > best_kagnn['Pearson']:
-    improvements.append(f"✓ Pearson improved by {metrics['Pearson']-best_kagnn['Pearson']:.3f}")
+    improvements.append(f" Pearson improved by {metrics['Pearson']-best_kagnn['Pearson']:.3f}")
 if metrics['Pct_le_30s'] > best_kagnn['Pct_le_30s']:
-    improvements.append(f"✓ % ≤ 30s improved by {metrics['Pct_le_30s']-best_kagnn['Pct_le_30s']:.2f}%")
+    improvements.append(f" % ≤ 30s improved by {metrics['Pct_le_30s']-best_kagnn['Pct_le_30s']:.2f}%")
 
 summary = f"""Model Performance Summary:
 
