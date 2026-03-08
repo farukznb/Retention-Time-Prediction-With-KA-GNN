@@ -74,7 +74,7 @@ class Config:
 
 def validate_data_loader(loader, name="Loader"):
     """Validate data loader for NaN/Inf values."""
-    print(f"\n🔍 Validating {name}...")
+    print(f"\n Validating {name}...")
     
     for i, batch in enumerate(loader):
         graph, ecfp, rt, cids = batch
@@ -196,7 +196,7 @@ def main():
         raise
     
     stage1_time = time.time() - start_time
-    print(f"\n✓ Stage 1 completed in {stage1_time:.2f} seconds ({stage1_time/60:.2f} minutes)")
+    print(f"\n Stage 1 completed in {stage1_time:.2f} seconds ({stage1_time/60:.2f} minutes)")
     
     # Load best Stage 1 model
     try:
@@ -232,7 +232,7 @@ def main():
     
     # Comprehensive statistical analysis (if available)
     if STATS_AVAILABLE:
-        print("\n📊 Running comprehensive statistical analysis for KAGNN...")
+        print("\n Running comprehensive statistical analysis for KAGNN...")
         kagnn_stats = comprehensive_statistical_analysis(
             y_true_kagnn, 
             y_pred_kagnn,
@@ -265,7 +265,7 @@ def main():
         raise
     
     stage2_time = time.time() - start_time
-    print(f"\n✓ Stage 2 completed in {stage2_time:.2f} seconds ({stage2_time/60:.2f} minutes)")
+    print(f"\n Stage 2 completed in {stage2_time:.2f} seconds ({stage2_time/60:.2f} minutes)")
     
     # Save complete model (KAGNN + PGM)
     try:
@@ -288,7 +288,7 @@ def main():
     y_pred_baseline = y_pred_kagnn
     
     # Compute metrics
-    print("\nComputing metrics...")
+    print("\n Computing metrics...")
     metrics = RTMetrics(
         y_true=y_true,
         y_pred=y_pred,
@@ -319,7 +319,7 @@ def main():
     
     # Comprehensive statistical analysis (if available)
     if STATS_AVAILABLE:
-        print("\n📊 Running comprehensive statistical analysis for KAGNN+PGM...")
+        print("\n Running comprehensive statistical analysis for KAGNN+PGM...")
         final_stats = comprehensive_statistical_analysis(
             y_true, 
             y_pred,
@@ -365,7 +365,7 @@ def main():
             
             json.dump(convert_to_serializable(comparison_results), f, indent=2)
         
-        print(f"✓ Statistical comparison saved to {cfg.plots_dir / 'statistical_comparison.json'}")
+        print(f" Statistical comparison saved to {cfg.plots_dir / 'statistical_comparison.json'}")
     
     # Generate visualizations
     print("\n" + "="*80)
@@ -508,7 +508,7 @@ def main():
     with open(cfg.results_dir / 'experiment_summary.json', 'w') as f:
         json.dump(summary, f, indent=2)
     
-    print(f"\n✓ Experiment summary saved to {cfg.results_dir / 'experiment_summary.json'}")
+    print(f"\n Experiment summary saved to {cfg.results_dir / 'experiment_summary.json'}")
 
 
 if __name__ == "__main__":
