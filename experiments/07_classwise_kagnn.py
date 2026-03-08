@@ -135,7 +135,7 @@ class Config:
         (self.results_dir / "plots" / "eda").mkdir(parents=True, exist_ok=True)
         self.use_amp     = torch.cuda.is_available()
         self._device_str = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"✓ Results dir : {self.results_dir}")
+        print(f" Results dir : {self.results_dir}")
         print(f"  AMP (fp16)  : {'ON' if self.use_amp else 'OFF'} | "
               f"batch: {self.batch_size} | workers: {self.num_workers}")
         print(f"  KAN backend : {_KAN_BACKEND}")
@@ -621,7 +621,7 @@ class KAGNNModel(nn.Module):
 def compute_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict:
     n_zero = int((y_true <= 0).sum())
     if n_zero > 0:
-        print(f"  ⚠ {n_zero} samples with RT ≤ 0 — clipping to 1e-3 for MedRE")
+        print(f"   {n_zero} samples with RT ≤ 0 — clipping to 1e-3 for MedRE")
         y_true = np.clip(y_true, 1e-3, None)
     ae = np.abs(y_true - y_pred)
     return {
@@ -1010,13 +1010,13 @@ def majority_bias_verdict(agg: pd.DataFrame, metrics: dict,
 
     print(f"\n  Classes BELOW global MedAE ({len(below)}) — well predicted:")
     for _, row in below.sort_values("MedAE").iterrows():
-        print(f"    ✓ {row['Class']:<35} "
+        print(f"     {row['Class']:<35} "
               f"MedAE={row['MedAE']:.2f}s  MedRE={row['MedRE']:.2f}%  "
               f"n={int(row['n'])}")
 
     print(f"\n  Classes ABOVE global MedAE ({len(above)}) — harder to predict:")
     for _, row in above.sort_values("MedAE", ascending=False).iterrows():
-        print(f"    ✗ {row['Class']:<35} "
+        print(f"     {row['Class']:<35} "
               f"MedAE={row['MedAE']:.2f}s  MedRE={row['MedRE']:.2f}%  "
               f"n={int(row['n'])}")
 
@@ -1082,7 +1082,7 @@ def main() -> None:
     # ── Device ────────────────────────────────────────────────────────────
     device     = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     pin_memory = device.type == "cuda"
-    print(f"\nDevice     : {device}"
+    print(f"\n Device     : {device}"
           f" | pin_memory: {pin_memory}"
           f" | num_workers: {config.num_workers}"
           f" | AMP: {config.use_amp}")
