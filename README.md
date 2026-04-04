@@ -14,7 +14,6 @@ Three experiments are conducted:
 
 - **Experiment 1 — Global Training:** Models trained on the full dataset without class differentiation, evaluated on a single held-out test set (n = 11,994).
 - **Experiment 2 — Class-Wise Oriented Training:** Models trained taking chemical superclasses into account, evaluated with 3-fold cross-validation and per-class MedAE analysis.
-- **Experiment 3 — Graph-Free MLP–PGM Ablation:** The KA-GNN backbone is replaced with a standard MLP operating on tabular features only, isolating the contribution of molecular graph structure and KAN expressivity to the performance gains observed in Experiments 1 and 2.
 
 ---
 
@@ -124,18 +123,7 @@ Per-fold statistical significance (KA-GNN correction vs. PGM alone): t-statistic
 
 The Reverse Hybrid is the **only architecture that improves every chemical class without exception**. The coarse-to-fine ordering (PGM → KA-GNN) always presents large, structured residuals to the second stage, regardless of class.
 
-### Experiment 3 — Graph-Free MLP–PGM Ablation: Isolating KAN Expressivity and Graph Structure
 
-| Model | MedAE (s) | R² | % ≤ 30s |
-|---|---|---|---|
-| GNN(MLP) standalone | 26.57 | 0.829 | 54.6% |
-| Forward GNN(MLP)–PGM | 27.14 | 0.827 | 54.1% |
-| GNN(MLP)–PGM ensemble | 25.33 | 0.834 | 56.2% |
-| **KA-GNN + PGM (Forward)** | **20.56** | 0.824 | **63.8%** |
-
-The 4.8 s MedAE gap between the best graph-free configuration and the Forward KA-GNN hybrid is statistically robust (p < 10⁻⁴⁸, Cohen's d = 0.41), attributable specifically to molecular graph structure and KAN expressivity. The GNN(MLP) ensemble (< 2 min training) nonetheless provides a practical low-infrastructure option achieving 96% of best KA-GNN performance.
-
----
 
 ## Key Findings
 
