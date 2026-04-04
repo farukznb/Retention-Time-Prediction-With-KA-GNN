@@ -10,10 +10,11 @@ Hybrid architectures combining **Kolmogorov–Arnold Graph Neural Networks (KA-G
 
 Retention time provides orthogonal physicochemical information to mass-to-charge ratio, enabling more reliable metabolite annotation in untargeted LC–MS workflows. This repository evaluates three hybrid architectures under two experimental protocols on the full METLIN SMRT dataset (79,955 compounds), without excluding non-retained compounds.
 
-Two experiments are conducted with the same three model architectures, differing only in training strategy:
+Three experiments are conducted:
 
 - **Experiment 1 — Global Training:** Models trained on the full dataset without class differentiation, evaluated on a single held-out test set (n = 11,994).
 - **Experiment 2 — Class-Wise Oriented Training:** Models trained taking chemical superclasses into account, evaluated with 3-fold cross-validation and per-class MedAE analysis.
+- **Experiment 3 — Graph-Free MLP–PGM Ablation:** The KA-GNN backbone is replaced with a standard MLP operating on tabular features only, isolating the contribution of molecular graph structure and KAN expressivity to the performance gains observed in Experiments 1 and 2.
 
 ---
 
@@ -65,9 +66,9 @@ A separate KAN encoder processes the ECFP4 fingerprint stream. Both streams are 
 **Stage 2:** The KA-GNN learns to correct the PGM residuals, specialising in local structural corrections that descriptors cannot represent.  
 **Inference:** $\hat{y} = \hat{y}_{\text{PGM}} + \hat{r}_{\text{KA-GNN}}$
 
-### 4. Graph-Free GNN Ablation (GNN(MLP))
+### 4. Graph-Free MLP Ablation (Experiment 3)
 
-The KA-GNN is replaced with a standard 4-layer MLP (512→256→128→1, BatchNorm + ReLU + Dropout) operating on tabular features only (ECFP4 + descriptors), with no molecular graph construction. This isolates the contribution of graph structure and KAN expressivity to the performance gap. Both forward and reverse integration orders are evaluated, along with a learned weighted ensemble.
+The KA-GNN is replaced with a standard 4-layer MLP (512→256→128→1, BatchNorm + ReLU + Dropout) operating on tabular features only (ECFP4 + descriptors), with **no molecular graph construction and no KAN activations**. This configuration — referred to as **GNN(MLP)** to signal its role as the neural component in a GNN–PGM pipeline — isolates the joint contribution of molecular graph structure and KAN expressivity to the performance gap observed in Experiments 1 and 2. Both forward (MLP → PGM) and reverse (PGM → MLP) integration orders are evaluated, along with a learned weighted ensemble of all three graph-free configurations.
 
 ---
 
@@ -123,7 +124,7 @@ Per-fold statistical significance (KA-GNN correction vs. PGM alone): t-statistic
 
 The Reverse Hybrid is the **only architecture that improves every chemical class without exception**. The coarse-to-fine ordering (PGM → KA-GNN) always presents large, structured residuals to the second stage, regardless of class.
 
-### Graph-Free Ablation (GNN(MLP), Experiment 3)
+### Experiment 3 — Graph-Free MLP–PGM Ablation: Isolating KAN Expressivity and Graph Structure
 
 | Model | MedAE (s) | R² | % ≤ 30s |
 |---|---|---|---|
@@ -140,11 +141,11 @@ The 4.8 s MedAE gap between the best graph-free configuration and the Forward KA
 
 1. **Component ordering is a fundamental architectural choice.** Global metrics mask stark class-wise differences: the Forward Hybrid degrades Lipids and Organic Acids despite the best global MedAE, while the Reverse Hybrid universally improves all classes.
 
-2. **Graph structure and KAN expressivity jointly contribute ~4.8 s of MedAE gain** over descriptor-only approaches, confirmed by controlled ablation.
+2. **Molecular graph structure and KAN expressivity jointly contribute ~4.8 s of MedAE gain** over tabular descriptor-only approaches, confirmed by the graph-free MLP ablation (Experiment 3, p < 10⁻⁴⁸, Cohen's d = 0.41).
 
 3. **Stratified class-wise evaluation is necessary** for chemically imbalanced datasets. Models should not be selected on global MedAE alone when the deployment domain spans diverse chemical classes.
 
-4. **The graph-free GNN(MLP)–PGM ensemble** (< 2 min training) achieves 96% of best KA-GNN hybrid performance and is recommended for resource-constrained deployment.
+4. **The graph-free MLP–PGM ensemble** (< 2 min training, no graph construction needed) achieves 96% of best KA-GNN hybrid performance and is recommended for resource-constrained deployment.
 
 ---
 
