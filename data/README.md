@@ -22,9 +22,7 @@ In Experiment 2, the dataset was partitioned using stratified three-fold cross-v
 
 ![image alt](https://github.com/farukznb/Retention-Time-Prediction-With-KA-GNN/blob/main/data/eda_01_class_imbalance.png)
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.4\textwidth]{data/eda_01_class_imbalance.png}
+
 \caption{Chemical class distribution of the SMRT dataset after preprocessing
 ($n = 79{,}955$). Organoheterocyclic compounds dominate with 98.2\% of all
 entries (78{,}543 compounds), followed by Other unclassified compounds
@@ -34,32 +32,26 @@ Organics (18), and Carbohydrates (16), each representing less than 0.1\%
 of the dataset. This severe class imbalance means that global metrics are
 effectively majority-class metrics, motivating the class-wise stratified
 evaluation conducted in Experiment~2.}
-\label{fig:eda_class_imbalance}
-\end{figure}
+
 \FloatBarrier
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.4\textwidth]{data/eda_02_rt_per_class.png}
+![image alt](https://github.com/farukznb/Retention-Time-Prediction-With-KA-GNN/blob/main/data/eda_02_rt_per_class.png)
+
+
 \caption{Retention time distribution per chemical class. Carbohydrates and
 Aliphatic Organics exhibit substantially higher median retention times and
 wider spread compared to Organoheterocyclics and Benzenoids, reflecting
 differences in hydrophobicity and polarity across compound families. These
 distributional differences explain the class-differential error patterns
 observed across architectures in Experiment~2.}
-\label{fig:eda_rt_per_class}
-\end{figure}
 \FloatBarrier
+![image alt](https://github.com/farukznb/Retention-Time-Prediction-With-KA-GNN/blob/main/data/eda_03_descriptor_kde.png)
 
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.4\textwidth]{data/eda_03_descriptor_kde.png}
+
 \caption{Kernel density estimates of key physicochemical descriptors
 (MolLogP, Topological Polar Surface Area, Molecular Weight) across the
 SMRT dataset. The multimodal distributions confirm that the dataset spans
 a broad and chemically diverse physicochemical space, supporting the use
 of both graph-based and descriptor-based modelling components in the
 proposed hybrid architectures.}
-\label{fig:eda_descriptor_kde}
-\end{figure}
 
