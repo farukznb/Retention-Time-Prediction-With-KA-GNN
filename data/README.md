@@ -20,7 +20,7 @@ Two graph-based molecular representations were generated,  one per model family.
 
 In Experiment 2, the dataset was partitioned using stratified three-fold cross-validation, with folds stratified by chemical class to preserve class proportions across all splits and stratified random splitting to ensure proportional representation of chemical classes across training, validation, and test sets. The final split allocated 55,967 compounds (70\%) to training, 11,994 compounds (15\%) to validation, and 11,994 compounds (15\%) to testing. Retention times were normalized using RobustScaler, which centers values at the median and scales by the interquartile range, thereby mitigating the influence of extreme chromatographic outliers that could distort gradient-based optimization. This partitioning constitutes the data split used in Experiment 1 and in the Experiment 3.
 
-![image alt](https://github.com/Prud11djagba/Exploring-Hybrid-of-Deep-Learning-Models-for-the-Prediction-of-Experimental-Quantities-of-Molecules/blob/d2e89a53f514a60f9c82ea4fdd4d8a7f0aa77d72/images/smile.png)
+![image alt](https://github.com/farukznb/Retention-Time-Prediction-With-KA-GNN/blob/main/data/eda_01_class_imbalance.png)
 
 \begin{figure}[htbp]
 \centering
