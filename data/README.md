@@ -20,9 +20,10 @@ Two graph-based molecular representations were generated,  one per model family.
 
 In Experiment 2, the dataset was partitioned using stratified three-fold cross-validation, with folds stratified by chemical class to preserve class proportions across all splits and stratified random splitting to ensure proportional representation of chemical classes across training, validation, and test sets. The final split allocated 55,967 compounds (70\%) to training, 11,994 compounds (15\%) to validation, and 11,994 compounds (15\%) to testing. Retention times were normalized using RobustScaler, which centers values at the median and scales by the interquartile range, thereby mitigating the influence of extreme chromatographic outliers that could distort gradient-based optimization. This partitioning constitutes the data split used in Experiment 1 and in the Experiment 3.
 
+
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.4\textwidth]{images/eda_01_class_imbalance.png}
+\includegraphics[width=0.4\textwidth]{data/eda_01_class_imbalance.png}
 \caption{Chemical class distribution of the SMRT dataset after preprocessing
 ($n = 79{,}955$). Organoheterocyclic compounds dominate with 98.2\% of all
 entries (78{,}543 compounds), followed by Other unclassified compounds
@@ -38,7 +39,7 @@ evaluation conducted in Experiment~2.}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.4\textwidth]{images/eda_02_rt_per_class.png}
+\includegraphics[width=0.4\textwidth]{data/eda_02_rt_per_class.png}
 \caption{Retention time distribution per chemical class. Carbohydrates and
 Aliphatic Organics exhibit substantially higher median retention times and
 wider spread compared to Organoheterocyclics and Benzenoids, reflecting
@@ -51,7 +52,7 @@ observed across architectures in Experiment~2.}
 
 \begin{figure}[htbp]
 \centering
-\includegraphics[width=0.4\textwidth]{images/eda_03_descriptor_kde.png}
+\includegraphics[width=0.4\textwidth]{data/eda_03_descriptor_kde.png}
 \caption{Kernel density estimates of key physicochemical descriptors
 (MolLogP, Topological Polar Surface Area, Molecular Weight) across the
 SMRT dataset. The multimodal distributions confirm that the dataset spans
