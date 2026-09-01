@@ -90,14 +90,14 @@ into a 512-dimensional representation for the final RT prediction.
 **Stage 1:** The KA-GNN backbone predicts RT end-to-end.  
 **Stage 2:** A CMLM ensemble (XGBoost + BayesianRidge) corrects the KA-GNN residuals 
 using the learned 256-dim embeddings concatenated with 32 molecular descriptors (288-dim input).  
-**Inference:** $\hat{y} = \hat{y}_{\text{KA-GNN}} + \hat{r}_{\text{CMLM}}$
+**Inference:** $$\hat{y} = \hat{y}_{\text{KA-GNN}} + \hat{r}_{\text{CMLM}}$$
 
 #### 3. Reverse Hybrid (CMLM → KA-GNN)
 
 **Stage 1:** A CMLM ensemble trained on ECFP4 + descriptors provides a physicochemical baseline.  
 **Stage 2:** The KA-GNN learns to correct the CMLM residuals, specialising in local structural 
 corrections that descriptors cannot represent.  
-**Inference:** $\hat{y} = \hat{y}_{\text{CMLM}} + \hat{r}_{\text{KA-GNN}}$
+**Inference:** $$\hat{y} = \hat{y}_{\text{CMLM}} + \hat{r}_{\text{KA-GNN}}$$
 
 ---
 
@@ -135,8 +135,8 @@ using molecular graphs + ECFP fingerprints.
 **Stage 2:** BayesianRidge corrects the GNN residuals using ECFP4 + 32 descriptors (1056-dim).  
 **Stage 3 (optional):** Weighted ensemble of CMLM, GNN, and Forward Hybrid predictions, 
 weights learned on the validation set.  
-**Inference:** $\hat{y} = \hat{y}_{\text{GNN}} + \hat{r}_{\text{CMLM}}$  
-**Ensemble:** $\hat{y}_{\text{ens}} = w_1\hat{y}_{\text{CMLM}} + w_2\hat{y}_{\text{GNN}} + w_3\hat{y}_{\text{Fwd}}$
+**Inference:** $$\hat{y} = \hat{y}_{\text{GNN}} + \hat{r}_{\text{CMLM}}$$  
+**Ensemble:** $$\hat{y}_{\text{ens}} = w_1\hat{y}_{\text{CMLM}} + w_2\hat{y}_{\text{GNN}} + w_3\hat{y}_{\text{Fwd}}$$
 
 #### 5. Reverse GNN Hybrid (CMLM → MolGCN)
 
@@ -144,7 +144,7 @@ weights learned on the validation set.
 **Stage 2:** MolGCN learns to correct CMLM residuals ($r = y - \hat{y}_{\text{CMLM}}$) 
 from the molecular graph and ECFP fingerprint. The graph topology allows the GNN to capture 
 substructure-level patterns that explain systematic CMLM errors.  
-**Inference:** $\hat{y} = \hat{y}_{\text{CMLM}} + \hat{r}_{\text{GNN}}$
+**Inference:** $$\hat{y} = \hat{y}_{\text{CMLM}} + \hat{r}_{\text{GNN}}$$
 
 ---
 
