@@ -97,7 +97,7 @@ using the learned 256-dim embeddings concatenated with 32 molecular descriptors 
 **Stage 1:** A CMLM ensemble trained on ECFP4 + descriptors provides a physicochemical baseline.  
 **Stage 2:** The KA-GNN learns to correct the CMLM residuals, specialising in local structural 
 corrections that descriptors cannot represent.  
-**Inference:** \( \hat{y} = \hat{y}_{\text{CMLM}} + \hat{r}_{\text{KA-GNN}} \)
+**Inference:** ŷ = ŷ<sub>CMLM</sub> + r̂<sub>KA-GNN</sub>
 ---
 
 ### GNN Family — MolGCN (Experiment 3)
@@ -134,13 +134,9 @@ using molecular graphs + ECFP fingerprints.
 **Stage 2:** BayesianRidge corrects the GNN residuals using ECFP4 + 32 descriptors (1056-dim).  
 **Stage 3 (optional):** Weighted ensemble of CMLM, GNN, and Forward Hybrid predictions, 
 weights learned on the validation set.  
-**Inference:** $$
-\hat{y} = \hat{y}_{\text{GNN}} + \hat{r}_{\text{CMLM}}
-$$
+**Inference:** ŷ = ŷ<sub>GNN</sub> + r̂<sub>CMLM</sub>
 
-**Ensemble:** $$
-\hat{y}_{\text{ens}} = w_1\hat{y}_{\text{CMLM}} + w_2\hat{y}_{\text{GNN}} + w_3\hat{y}_{\text{Fwd}}
-$$
+**Ensemble:** ŷ<sub>ens</sub> = w<sub>1</sub>ŷ<sub>CMLM</sub> + w<sub>2</sub>ŷ<sub>GNN</sub> + w<sub>3</sub>ŷ<sub>Fwd</sub>
 
 #### 5. Reverse GNN Hybrid (CMLM → MolGCN)
 
@@ -148,9 +144,7 @@ $$
 **Stage 2:** MolGCN learns to correct CMLM residuals ($r = y - \hat{y}_{\text{CMLM}}$) 
 from the molecular graph and ECFP fingerprint. The graph topology allows the GNN to capture 
 substructure-level patterns that explain systematic CMLM errors.  
-**Inference:** $$
-\hat{y} = \hat{y}_{\text{CMLM}} + \hat{r}_{\text{GNN}}
-$$
+**Inference:** ŷ = ŷ<sub>CMLM</sub> + r̂<sub>GNN</sub>
 ---
 
 ## Results
