@@ -92,8 +92,8 @@ into a 512-dimensional representation for the final RT prediction.
 using the learned 256-dim embeddings concatenated with 32 molecular descriptors (288-dim input).  
 **Inference:** ŷ = ŷ<sub>KA-GNN</sub> + r̂<sub>CMLM</sub>
 
-#### 3. Reverse Hybrid (CMLM → KA-GNN)
 
+#### 3. Reverse Hybrid (CMLM → KA-GNN)
 **Stage 1:** A CMLM ensemble trained on ECFP4 + descriptors provides a physicochemical baseline.  
 **Stage 2:** The KA-GNN learns to correct the CMLM residuals, specialising in local structural 
 corrections that descriptors cannot represent.  
