@@ -1,9 +1,9 @@
-# Retention Time Prediction with KA-GNN, GNN Hybrids and PGM
+# Retention Time Prediction with KA-GNN, GNN Hybrids and CMLM
 
 [![License](https://img.shields.io/badge/license-MIT-blue)](https://github.com/farukznb/Retention-Time-Prediction-With-KA-GNN/blob/main/LICENSE)
 
 Hybrid architectures combining **Kolmogorov–Arnold Graph Neural Networks (KA-GNN)**, 
-**Graph Convolutional Networks (GCN-based GNN)**, and **Probabilistic Graphical Models (PGM)** 
+**Graph Convolutional Networks (GCN-based GNN)**, and **Classical Machine Learning methods (CMLM)** 
 for liquid chromatography retention time (RT) prediction on the METLIN SMRT dataset, 
 with a focus on LC–MS use cases in pharmaceutical drug discovery and metabolite identification.
 
@@ -85,19 +85,19 @@ $$\phi(x) = a_0 + \sum_{k=1}^{K}(a_k \cos kx + b_k \sin kx)$$
 A separate KAN encoder processes the ECFP4 fingerprint stream. Both streams are fused 
 into a 512-dimensional representation for the final RT prediction.
 
-#### 2. Forward Hybrid (KA-GNN → PGM)
+#### 2. Forward Hybrid (KA-GNN → CMLM)
 
 **Stage 1:** The KA-GNN backbone predicts RT end-to-end.  
-**Stage 2:** A PGM ensemble (XGBoost + BayesianRidge) corrects the KA-GNN residuals 
+**Stage 2:** A CMLM ensemble (XGBoost + BayesianRidge) corrects the KA-GNN residuals 
 using the learned 256-dim embeddings concatenated with 32 molecular descriptors (288-dim input).  
-**Inference:** $\hat{y} = \hat{y}_{\text{KA-GNN}} + \hat{r}_{\text{PGM}}$
+**Inference:** $\hat{y} = \hat{y}_{\text{KA-GNN}} + \hat{r}_{\text{CMLM}}$
 
-#### 3. Reverse Hybrid (PGM → KA-GNN)
+#### 3. Reverse Hybrid (CMLM → KA-GNN)
 
-**Stage 1:** A PGM ensemble trained on ECFP4 + descriptors provides a physicochemical baseline.  
-**Stage 2:** The KA-GNN learns to correct the PGM residuals, specialising in local structural 
+**Stage 1:** A CMLM ensemble trained on ECFP4 + descriptors provides a physicochemical baseline.  
+**Stage 2:** The KA-GNN learns to correct the CMLM residuals, specialising in local structural 
 corrections that descriptors cannot represent.  
-**Inference:** $\hat{y} = \hat{y}_{\text{PGM}} + \hat{r}_{\text{KA-GNN}}$
+**Inference:** $\hat{y} = \hat{y}_{\text{CMLM}} + \hat{r}_{\text{KA-GNN}}$
 
 ---
 
@@ -128,23 +128,23 @@ Fusion        : concat(512) → Linear(512→256) → ReLU → Linear(256→1)
 
 **Total trainable parameters: 599,553**
 
-#### 4. Forward GNN Hybrid (MolGCN → PGM)
+#### 4. Forward GNN Hybrid (MolGCN → CMLM)
 
 **Stage 1:** MolGCN is the **primary predictor**, trained directly on absolute RT 
 using molecular graphs + ECFP fingerprints.  
 **Stage 2:** BayesianRidge corrects the GNN residuals using ECFP4 + 32 descriptors (1056-dim).  
-**Stage 3 (optional):** Weighted ensemble of PGM, GNN, and Forward Hybrid predictions, 
+**Stage 3 (optional):** Weighted ensemble of CMLM, GNN, and Forward Hybrid predictions, 
 weights learned on the validation set.  
-**Inference:** $\hat{y} = \hat{y}_{\text{GNN}} + \hat{r}_{\text{PGM}}$  
-**Ensemble:** $\hat{y}_{\text{ens}} = w_1\hat{y}_{\text{PGM}} + w_2\hat{y}_{\text{GNN}} + w_3\hat{y}_{\text{Fwd}}$
+**Inference:** $\hat{y} = \hat{y}_{\text{GNN}} + \hat{r}_{\text{CMLM}}$  
+**Ensemble:** $\hat{y}_{\text{ens}} = w_1\hat{y}_{\text{CMLM}} + w_2\hat{y}_{\text{GNN}} + w_3\hat{y}_{\text{Fwd}}$
 
-#### 5. Reverse GNN Hybrid (PGM → MolGCN)
+#### 5. Reverse GNN Hybrid (CMLM → MolGCN)
 
 **Stage 1:** BayesianRidge on ECFP4 + descriptors provides a probabilistic baseline.  
-**Stage 2:** MolGCN learns to correct PGM residuals ($r = y - \hat{y}_{\text{PGM}}$) 
+**Stage 2:** MolGCN learns to correct CMLM residuals ($r = y - \hat{y}_{\text{CMLM}}$) 
 from the molecular graph and ECFP fingerprint. The graph topology allows the GNN to capture 
-substructure-level patterns that explain systematic PGM errors.  
-**Inference:** $\hat{y} = \hat{y}_{\text{PGM}} + \hat{r}_{\text{GNN}}$
+substructure-level patterns that explain systematic CMLM errors.  
+**Inference:** $\hat{y} = \hat{y}_{\text{CMLM}} + \hat{r}_{\text{GNN}}$
 
 ---
 
@@ -156,10 +156,10 @@ substructure-level patterns that explain systematic PGM errors.
 |---|---|---|---|---|---|
 | SMRT DNN baseline | 35.0 | — | — | — | — |
 | KA-GNN Standalone | 26.14 | 48.43 | 90.68 | 0.827 | 55.3% |
-| **Forward Hybrid (KA-GNN → PGM)** | **20.45** | **36.99** | **69.22** | **0.834** | **65.1%** |
-| Reverse Hybrid (PGM → KA-GNN) | 22.19 | 39.57 | 71.94 | 0.820 | 61.7% |
+| **Forward Hybrid (KA-GNN → CMLM)** | **20.45** | **36.99** | **69.22** | **0.834** | **65.1%** |
+| Reverse Hybrid (CMLM → KA-GNN) | 22.19 | 39.57 | 71.94 | 0.820 | 61.7% |
 
-The Forward Hybrid achieves the best global performance. The PGM corrector adds only 
+The Forward Hybrid achieves the best global performance. The CMLM corrector adds only 
 ~4 minutes of training beyond the KA-GNN, yet reduces MedAE by 21.7%.
 
 ---
@@ -177,23 +177,23 @@ The Forward Hybrid achieves the best global performance. The PGM corrector adds 
 | **Global** | 26.14 | **20.45** | +5.69 |
 
 The Forward Hybrid improves majority classes but degrades Lipids and Organic Acids — 
-the PGM corrector fits noise when KA-GNN residuals are already small for those classes.
+the CMLM corrector fits noise when KA-GNN residuals are already small for those classes.
 
-#### Reverse Hybrid (PGM → KA-GNN, 3-fold CV, mean ± std)
+#### Reverse Hybrid (CMLM → KA-GNN, 3-fold CV, mean ± std)
 
-| Metric | PGM only | PGM + KA-GNN |
+| Metric | CMLM only | CMLM + KA-GNN |
 |---|---|---|
 | MedAE (s) | 40.05 ± 0.71 | **29.12 ± 1.29** |
 | MAE (s) | 62.17 ± 0.70 | **51.32 ± 1.34** |
 | R² | 0.783 ± 0.002 | **0.811 ± 0.002** |
 | % ≤ 30s | 39.4% ± 0.65 | **51.1% ± 1.69** |
 
-Per-fold statistical significance (KA-GNN correction vs. PGM alone): 
+Per-fold statistical significance (KA-GNN correction vs. CMLM alone): 
 t-statistics 37.76–44.04, all p ≤ 5.77 × 10⁻³⁰⁴.
 
-#### Class-Wise MedAE — PGM Only vs. Reverse Hybrid (PGM → KA-GNN)
+#### Class-Wise MedAE — CMLM Only vs. Reverse Hybrid (CMLM → KA-GNN)
 
-| Class | PGM only | Reverse Hybrid | Δ |
+| Class | CMLM only | Reverse Hybrid | Δ |
 |---|---|---|---|
 | Organoheterocyclics | 39.37 | **28.92** | +10.45 |
 | Other | 80.60 | **45.01** | +35.59 |
@@ -204,7 +204,7 @@ t-statistics 37.76–44.04, all p ≤ 5.77 × 10⁻³⁰⁴.
 | Carbohydrates | 235.85 | **142.53** | +93.32 |
 
 The Reverse Hybrid is the only architecture that improves every chemical class without 
-exception. The coarse-to-fine ordering (PGM → KA-GNN) always presents large, structured 
+exception. The coarse-to-fine ordering (CMLM → KA-GNN) always presents large, structured 
 residuals to the second stage, regardless of class.
 
 ---
@@ -212,9 +212,9 @@ residuals to the second stage, regardless of class.
 ### Experiment 3 — GNN Hybrids, Global Training (n = 11,994 test)
 
 Both models use the MolGCN dual-stream architecture (GCNConv + FP stream, 599,553 parameters). 
-The PGM baseline is identical across all experiments (BayesianRidge on ECFP4 + 32 descriptors).
+The CMLM baseline is identical across all experiments (BayesianRidge on ECFP4 + 32 descriptors).
 
-#### PGM Baseline (shared across all Experiment 3 models)
+#### CMLM Baseline (shared across all Experiment 3 models)
 
 | Metric | Value |
 |---|---|
@@ -227,16 +227,16 @@ The PGM baseline is identical across all experiments (BayesianRidge on ECFP4 + 3
 | % ≤ 30s | 31.0% |
 | % ≤ 60s | 55.3% |
 
-#### Forward GNN Hybrid (MolGCN → PGM)
+#### Forward GNN Hybrid (MolGCN → CMLM)
 
 Training: early stop at epoch 42 (train loss = 0.00408, val loss = 0.06099).  
-Ensemble weights learned on validation set: PGM = 0.197, GNN = 0.115, FwdHybrid = 0.689.
+Ensemble weights learned on validation set: CMLM = 0.197, GNN = 0.115, FwdHybrid = 0.689.
 
 | Model | MedAE (s) | MAE (s) | RMSE (s) | R² | % ≤ 30s |
 |---|---|---|---|---|---|
-| PGM baseline | 52.15 | 74.86 | 108.73 | 0.716 | 31.0% |
+| CMLM baseline | 52.15 | 74.86 | 108.73 | 0.716 | 31.0% |
 | GNN standalone (MolGCN) | 29.04 | 50.56 | 88.79 | 0.811 | 51.4% |
-| **Forward Hybrid (GNN → PGM)** | **28.24** | **49.86** | **88.29** | **0.813** | **52.5%** |
+| **Forward Hybrid (GNN → CMLM)** | **28.24** | **49.86** | **88.29** | **0.813** | **52.5%** |
 | Weighted Ensemble | 28.77 | 49.84 | 86.71 | 0.820 | 51.4% |
 
 Statistical significance (paired Wilcoxon):
@@ -244,30 +244,30 @@ Statistical significance (paired Wilcoxon):
 | Comparison | p-value | Result |
 |---|---|---|
 | Forward Hybrid < GNN | 6.6 × 10⁻²¹ | ✓ significant |
-| Forward Hybrid < PGM | ~0 | ✓ significant |
+| Forward Hybrid < CMLM | ~0 | ✓ significant |
 | Ensemble < GNN | 1.1 × 10⁻⁹ | ✓ significant |
 | Ensemble < Forward Hybrid | 0.055 | ✗ not significant |
 
 Total runtime: 9 min 29 s (GPU: CUDA).
 
-#### Reverse GNN Hybrid (PGM → MolGCN)
+#### Reverse GNN Hybrid (CMLM → MolGCN)
 
 Training: early stop at epoch 29 (train loss = 0.00933, val loss = 0.06171).
 
 | Model | MedAE (s) | MAE (s) | RMSE (s) | R² | % ≤ 30s | % ≤ 60s |
 |---|---|---|---|---|---|---|
-| PGM baseline | 52.15 | 74.86 | 108.73 | 0.716 | 31.0% | 55.3% |
-| **Reverse Hybrid (PGM → GNN)** | **31.62** | **53.06** | **88.93** | **0.810** | **47.9%** | **73.7%** |
+| CMLM baseline | 52.15 | 74.86 | 108.73 | 0.716 | 31.0% | 55.3% |
+| **Reverse Hybrid (CMLM → GNN)** | **31.62** | **53.06** | **88.93** | **0.810** | **47.9%** | **73.7%** |
 
-Statistical significance: Wilcoxon p ≈ 0 (Reverse Hybrid < PGM), ✓ significant.  
-Improvement over PGM baseline: **−20.5 s MedAE (−39.4%)**.  
+Statistical significance: Wilcoxon p ≈ 0 (Reverse Hybrid < CMLM), ✓ significant.  
+Improvement over CMLM baseline: **−20.5 s MedAE (−39.4%)**.  
 Total runtime: 6 min 51 s (GPU: CUDA).
 
 #### Experiment 3 — Cross-Model Comparison Summary
 
 | Model | MedAE (s) | R² | % ≤ 30s | Training time |
 |---|---|---|---|---|
-| PGM baseline | 52.15 | 0.716 | 31.0% | < 1 min |
+| CMLM baseline | 52.15 | 0.716 | 31.0% | < 1 min |
 | GNN standalone (MolGCN) | 29.04 | 0.811 | 51.4% | ~9 min |
 | Forward GNN Hybrid | 28.24 | 0.813 | 52.5% | ~9 min |
 | Weighted Ensemble | 28.77 | 0.820 | 51.4% | ~9 min |
@@ -279,10 +279,10 @@ Total runtime: 6 min 51 s (GPU: CUDA).
 
 | Model Family | Best Model | MedAE (s) | R² | % ≤ 30s |
 |---|---|---|---|---|
-| KA-GNN Hybrids | Forward KA-GNN → PGM | **20.45** | 0.834 | **65.1%** |
-| GNN Hybrids (MolGCN) | Forward GNN → PGM | 28.24 | 0.813 | 52.5% |
+| KA-GNN Hybrids | Forward KA-GNN → CMLM | **20.45** | 0.834 | **65.1%** |
+| GNN Hybrids (MolGCN) | Forward GNN → CMLM | 28.24 | 0.813 | 52.5% |
 | GNN Hybrids (MolGCN) | Weighted Ensemble | 28.77 | **0.820** | 51.4% |
-| PGM baseline | BayesianRidge | 52.15 | 0.716 | 31.0% |
+| CMLM baseline | BayesianRidge | 52.15 | 0.716 | 31.0% |
 
 The KA-GNN Forward Hybrid outperforms the GCN-based GNN Forward Hybrid by **7.8 s MedAE**, 
 demonstrating that Kolmogorov–Arnold activations provide expressivity beyond standard 
@@ -302,7 +302,7 @@ graph convolution for RT prediction.
    on graph edges capture RT-relevant patterns that fixed ReLU convolutions miss.
 
 3. **GCN-based GNN hybrids confirm graph structure is informative.** The MolGCN 
-   (3 × GCNConv, 23-dim node features, dual-stream with FP encoder) reduces PGM baseline 
+   (3 × GCNConv, 23-dim node features, dual-stream with FP encoder) reduces CMLM baseline 
    MedAE from 52.15 s to 28.24 s (Forward) and 31.62 s (Reverse), establishing that 
    molecular graph topology — not just fingerprints — is essential for accurate RT prediction.
 
@@ -311,7 +311,7 @@ graph convolution for RT prediction.
    diverse chemical classes.
 
 5. **The Reverse GNN Hybrid is the most robust configuration across chemical classes.** 
-   The coarse-to-fine ordering (PGM → GNN) always presents large, structured residuals 
+   The coarse-to-fine ordering (CMLM → GNN) always presents large, structured residuals 
    to the second stage, regardless of class, enabling consistent improvement.
 
 ---
@@ -333,7 +333,7 @@ All experiments were run on GPU (CUDA). Approximate runtimes:
 | KA-GNN Reverse Hybrid | ~226 min |
 | GNN Forward Hybrid (MolGCN) | ~9 min 29 s |
 | GNN Reverse Hybrid (MolGCN) | ~6 min 51 s |
-| PGM baseline only | < 1 min |
+| CMLM baseline only | < 1 min |
 
 ---
 
